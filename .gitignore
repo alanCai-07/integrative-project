@@ -1,5 +1,7 @@
 # Build outputs
-/target/
+target/
+config.properties/
+
 
 # Java
 *.class
@@ -15,3 +17,4 @@ Thumbs.db
 
 # Logs
 *.log
+config.properties
