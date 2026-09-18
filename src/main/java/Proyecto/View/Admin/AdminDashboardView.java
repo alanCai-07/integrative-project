@@ -99,6 +99,7 @@ public class AdminDashboardView {
     // TAB 1: DASHBOARD
     // =========================================================================
 
+    @SuppressWarnings("unchecked")
     private Node crearTabDashboard() {
         VBox panel = new VBox(20);
         panel.setPadding(new Insets(15));
@@ -390,7 +391,7 @@ public class AdminDashboardView {
                 "p.nombres, p.email, p.telefono " +
                 "FROM persona p " +
                 "JOIN proveedor pr ON p.id_persona = pr.id_persona " +
-                "WHERE p.activo = 1 ORDER BY pr.nombre_empresa ASC";
+                "WHERE p.activo = TRUE ORDER BY pr.nombre_empresa ASC";
         try (java.sql.Connection conn = Proyecto.util.conexionBD.obtenerConexion();
              java.sql.Statement  stmt = conn.createStatement();
              java.sql.ResultSet  rs   = stmt.executeQuery(sql)) {

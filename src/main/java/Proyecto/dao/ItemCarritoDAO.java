@@ -147,9 +147,8 @@ public class ItemCarritoDAO {
     // PARÁMETRO: idCliente (CarritoServices pasa cliente.getId())
     public boolean limpiarCarrito(int idCliente) {
         // Resuelve id_carrito desde id_cliente
-        String sql = "DELETE ic FROM item_carrito ic "
-                + "JOIN carrito ca ON ic.id_carrito = ca.id_carrito "
-                + "WHERE ca.id_cliente = ?";
+        String sql = "DELETE FROM item_carrito "
+                + "WHERE id_carrito IN (SELECT id_carrito FROM carrito WHERE id_cliente = ?)";
 
         try (Connection conexion = conexionBD.obtenerConexion();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {

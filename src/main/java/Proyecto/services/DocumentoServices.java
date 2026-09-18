@@ -2,10 +2,8 @@ package Proyecto.services;
 
 import Proyecto.dao.DocumentoDAO;
 import Proyecto.dao.InventarioDAO;
-import Proyecto.dao.CarritoDAO;
 import Proyecto.dao.ItemCarritoDAO;
 import Proyecto.dao.PersonaDAO;
-import Proyecto.Model.Carrito;
 import Proyecto.Model.ItemCarrito;
 import Proyecto.Model.Compra;
 import Proyecto.Model.DetalleCompra;
@@ -21,13 +19,11 @@ public class DocumentoServices {
 
     private DocumentoDAO   documentoDAO;
     private InventarioDAO  inventarioDAO;
-    private CarritoDAO     carritoDAO;
     private ItemCarritoDAO itemCarritoDAO;
 
     public DocumentoServices() {
         this.documentoDAO   = new DocumentoDAO();
         this.inventarioDAO  = new InventarioDAO();
-        this.carritoDAO     = new CarritoDAO();
         this.itemCarritoDAO = new ItemCarritoDAO();
     }
 

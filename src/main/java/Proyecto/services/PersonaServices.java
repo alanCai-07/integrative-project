@@ -102,6 +102,32 @@ public class PersonaServices {
         return personaDAO.actualizarEmpleado(idPersona, nombre, apellido, telefono, idCargo, salario, activo);
     }
 
+    public boolean crearProveedor(String empresa, String nit, String nombreContacto,
+            String apellidosContacto, String email, String telefono, String direccion) {
+        if (empresa == null || empresa.trim().isEmpty()
+                || nombreContacto == null || nombreContacto.trim().isEmpty()
+                || nit == null || nit.trim().isEmpty()) {
+            return false;
+        }
+        return personaDAO.crearProveedor(empresa.trim(), nit.trim(), nombreContacto.trim(),
+                apellidosContacto == null ? "" : apellidosContacto.trim(),
+                email == null ? null : email.trim().toLowerCase(),
+                telefono, direccion);
+    }
+
+    public boolean actualizarProveedor(int idPersona, String empresa, String nit,
+            String nombreContacto, String apellidosContacto, String email,
+            String telefono, String direccion) {
+        if (idPersona <= 0 || empresa == null || empresa.trim().isEmpty()
+                || nombreContacto == null || nombreContacto.trim().isEmpty()
+                || nit == null || nit.trim().isEmpty()) {
+            return false;
+        }
+        return personaDAO.actualizarProveedor(idPersona, empresa.trim(), nit.trim(),
+                nombreContacto.trim(), apellidosContacto == null ? "" : apellidosContacto.trim(),
+                email == null ? null : email.trim().toLowerCase(), telefono, direccion);
+    }
+
     private int resolverIdCargo(String cargo) {
         if (cargo == null)
             return -1;

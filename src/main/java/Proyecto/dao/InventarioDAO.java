@@ -182,7 +182,7 @@ public class InventarioDAO {
                 "(p.stock_minimo - p.stock_actual) AS deficit " +
                 "FROM producto p " +
                 "JOIN categoria c ON p.id_categoria = c.id_categoria " +
-                "WHERE p.stock_actual <= p.stock_minimo AND p.activo = 1 " +
+                "WHERE p.stock_actual <= p.stock_minimo AND p.activo = TRUE " +
                 "ORDER BY deficit DESC";
 
         List<Map<String, Object>> productos = new ArrayList<>();
@@ -213,20 +213,20 @@ public class InventarioDAO {
      */
     public Map<String, Object> obtenerKpisDashboard() {
         String sql = "SELECT " +
-                "(SELECT COUNT(*) FROM producto WHERE activo = 1) AS total_productos, " +
-                "(SELECT COUNT(*) FROM producto WHERE stock_actual <= stock_minimo AND activo = 1) AS bajo_stock, " +
-                "(SELECT COUNT(*) FROM documento WHERE id_tipo_documento = 1 AND DATE(fecha_documento) = CURDATE()) AS ventas_hoy, "
+                "(SELECT COUNT(*) FROM producto WHERE activo = TRUE) AS total_productos, " +
+                "(SELECT COUNT(*) FROM producto WHERE stock_actual <= stock_minimo AND activo = TRUE) AS bajo_stock, " +
+                "(SELECT COUNT(*) FROM documento WHERE id_tipo_documento = 1 AND fecha_documento::date = CURRENT_DATE) AS ventas_hoy, "
                 +
-                "(SELECT IFNULL(SUM(total),0) FROM documento WHERE id_tipo_documento = 1 " +
-                "  AND MONTH(fecha_documento)=MONTH(NOW()) AND YEAR(fecha_documento)=YEAR(NOW()) AND estado='COMPLETADA') AS ingresos_mes, "
+                "(SELECT COALESCE(SUM(total),0) FROM documento WHERE id_tipo_documento = 1 " +
+                "  AND DATE_TRUNC('month', fecha_documento) = DATE_TRUNC('month', CURRENT_TIMESTAMP) AND estado='COMPLETADA') AS ingresos_mes, "
                 +
-                "(SELECT IFNULL(SUM(total),0) FROM documento WHERE id_tipo_documento = 1 " +
-                "  AND MONTH(fecha_documento)=MONTH(NOW()-INTERVAL 1 MONTH) AND YEAR(fecha_documento)=YEAR(NOW()-INTERVAL 1 MONTH) AND estado='COMPLETADA') AS ingresos_mes_anterior, "
+                "(SELECT COALESCE(SUM(total),0) FROM documento WHERE id_tipo_documento = 1 " +
+                "  AND DATE_TRUNC('month', fecha_documento) = DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month') AND estado='COMPLETADA') AS ingresos_mes_anterior, "
                 +
                 "(SELECT COUNT(DISTINCT id_persona) FROM documento WHERE id_tipo_documento = 1 " +
-                "  AND MONTH(fecha_documento)=MONTH(NOW()) AND YEAR(fecha_documento)=YEAR(NOW())) AS clientes_activos_mes, "
+                "  AND DATE_TRUNC('month', fecha_documento) = DATE_TRUNC('month', CURRENT_TIMESTAMP)) AS clientes_activos_mes, "
                 +
-                "(SELECT COUNT(*) FROM persona WHERE tipo='CLIENTE' AND activo=1) AS total_clientes";
+                "(SELECT COUNT(*) FROM persona WHERE tipo='CLIENTE' AND activo=TRUE) AS total_clientes";
 
         Map<String, Object> kpis = new HashMap<>();
         try (Connection conexion = conexionBD.obtenerConexion();
@@ -252,14 +252,14 @@ public class InventarioDAO {
      * Ventas de los ultimos N meses agrupadas por mes para el grafico de barras.
      */
     public List<Map<String, Object>> obtenerVentasPorMes(int meses) {
-        String sql = "SELECT DATE_FORMAT(fecha_documento, '%Y-%m') AS periodo, " +
-                "DATE_FORMAT(fecha_documento, '%b %Y') AS etiqueta, " +
+        String sql = "SELECT TO_CHAR(fecha_documento, 'YYYY-MM') AS periodo, " +
+                "TO_CHAR(fecha_documento, 'Mon YYYY') AS etiqueta, " +
                 "COUNT(*) AS cantidad_ventas, " +
-                "IFNULL(SUM(total), 0) AS total_ventas " +
+                "COALESCE(SUM(total), 0) AS total_ventas " +
                 "FROM documento " +
                 "WHERE id_tipo_documento = 1 " +
                 "  AND estado = 'COMPLETADA' " +
-                "  AND fecha_documento >= DATE_SUB(NOW(), INTERVAL ? MONTH) " +
+                "  AND fecha_documento >= CURRENT_TIMESTAMP - (? * INTERVAL '1 month') " +
                 "GROUP BY periodo, etiqueta " +
                 "ORDER BY periodo ASC";
 

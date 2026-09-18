@@ -2,7 +2,6 @@ package Proyecto.View.Documento;
 
 import Proyecto.Model.Cliente;
 import Proyecto.Model.Producto;
-import Proyecto.services.DocumentoServices;
 import Proyecto.services.PersonaServices;
 import Proyecto.services.ProductoServices;
 import javafx.beans.property.SimpleDoubleProperty;
@@ -27,10 +26,7 @@ public class CotizacionView {
 
     private final ProductoServices   productoServices;
     private final PersonaServices    personaServices;
-    private final DocumentoServices  documentoServices;
-
     private ObservableList<ItemCotizacion> itemsCotizacion;
-    private List<Producto>                 productosFiltrados;
 
     private TextField     txtBuscarCliente;
     private Label         lblClienteSeleccionado;
@@ -56,9 +52,7 @@ public class CotizacionView {
     public CotizacionView() {
         this.productoServices    = new ProductoServices();
         this.personaServices     = new PersonaServices();
-        this.documentoServices   = new DocumentoServices();
         this.itemsCotizacion     = FXCollections.observableArrayList();
-        this.productosFiltrados  = new ArrayList<>();
         this.clientesEncontrados = new ArrayList<>();
         this.productosFiltradosLista = new ArrayList<>();
         build();
