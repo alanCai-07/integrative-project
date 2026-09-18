@@ -4,7 +4,6 @@ import Proyecto.Model.Categoria;
 import Proyecto.Model.Producto;
 import Proyecto.services.CategoriaServices;
 import Proyecto.services.ProductoServices;
-import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -291,8 +290,7 @@ public class BodegaProductoView {
      */
     private boolean habilitarProducto(int idProducto) {
         try {
-            Proyecto.util.conexionBD conexion = null;
-            String sql = "UPDATE producto SET activo = 1 WHERE id_producto = ?";
+            String sql = "UPDATE producto SET activo = TRUE WHERE id_producto = ?";
             try (java.sql.Connection conn = Proyecto.util.conexionBD.obtenerConexion();
                     java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, idProducto);
@@ -448,7 +446,9 @@ public class BodegaProductoView {
 
     private void actualizarStockMinimo(String nombreProducto, int stockMin) {
         try {
-            String sql = "UPDATE producto SET stock_minimo = ? WHERE nombre = ? ORDER BY id_producto DESC LIMIT 1";
+            String sql = "UPDATE producto SET stock_minimo = ? WHERE id_producto = "
+                    + "(SELECT id_producto FROM producto WHERE nombre = ? "
+                    + "ORDER BY id_producto DESC LIMIT 1)";
             try (java.sql.Connection conn = Proyecto.util.conexionBD.obtenerConexion();
                     java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setInt(1, stockMin);

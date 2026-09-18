@@ -25,9 +25,9 @@ import javafx.stage.Stage;
  */
 public class GestionProveedoresView {
 
-    private final PersonaServices personaServices;
     private final Runnable onGuardado;
     private final String[] datosActuales;
+    private final PersonaServices personaServices = new PersonaServices();
 
     private TextField txtEmpresa;
     private TextField txtNit;
@@ -42,7 +42,6 @@ public class GestionProveedoresView {
 
     // ── Constructor ───────────────────────────────────────────────────────────
     public GestionProveedoresView(Stage owner, String[] datosActuales, Runnable onGuardado) {
-        this.personaServices = new PersonaServices();
         this.datosActuales = datosActuales;
         this.onGuardado = onGuardado;
         build(owner);
@@ -159,16 +158,25 @@ public class GestionProveedoresView {
         }
 
         try {
-            // TODO: conectar con ProveedorServices.crear/actualizar(...)
-            // personaServices.crearProveedor(
-            // txtEmpresa.getText().trim(), txtNit.getText().trim(),
-            // txtContacto.getText().trim(), txtApellidos.getText().trim(),
-            // txtEmail.getText().trim(), txtTelefono.getText().trim(),
-            // txtDireccion.getText().trim());
+            boolean guardado;
+            if (datosActuales == null) {
+                guardado = personaServices.crearProveedor(
+                        txtEmpresa.getText(), txtNit.getText(), txtContacto.getText(),
+                        txtApellidos.getText(), txtEmail.getText(), txtTelefono.getText(),
+                        txtDireccion.getText());
+            } else {
+                guardado = personaServices.actualizarProveedor(
+                        Integer.parseInt(datosActuales[0]), txtEmpresa.getText(), txtNit.getText(),
+                        txtContacto.getText(), txtApellidos.getText(), txtEmail.getText(),
+                        txtTelefono.getText(), txtDireccion.getText());
+            }
+            if (!guardado) {
+                error("No se pudo guardar el proveedor. Verifica que el NIT y el email no estén repetidos.", null);
+                return;
+            }
 
             new Alert(Alert.AlertType.INFORMATION,
-                    "Proveedor " + (datosActuales == null ? "registrado" : "actualizado") + " correctamente.\n" +
-                            "(Conecta el servicio de proveedores para persistencia en BD)",
+                    "Proveedor " + (datosActuales == null ? "registrado" : "actualizado") + " correctamente.",
                     ButtonType.OK).showAndWait();
 
             if (onGuardado != null)

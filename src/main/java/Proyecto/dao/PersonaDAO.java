@@ -15,7 +15,7 @@ public class PersonaDAO {
                 "c.contrasena_hash " +
                 "FROM persona p " +
                 "JOIN cliente c ON p.id_persona = c.id_persona " +
-                "WHERE p.activo = 1 " +
+                "WHERE p.activo = TRUE " +
                 "  AND p.tipo = 'CLIENTE' " +
                 "  AND (p.nombres   LIKE ? " +
                 "    OR p.apellidos LIKE ? " +
@@ -50,7 +50,7 @@ public class PersonaDAO {
                 "FROM persona p " +
                 "JOIN empleado e ON p.id_persona = e.id_persona " +
                 "JOIN cargo    c ON e.id_cargo   = c.id_cargo " +
-                "WHERE p.email = ? AND p.tipo = 'EMPLEADO' AND p.activo = 1";
+                "WHERE p.email = ? AND p.tipo = 'EMPLEADO' AND p.activo = TRUE";
 
         try (Connection conn = conexionBD.obtenerConexion();
                 PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -142,7 +142,7 @@ public class PersonaDAO {
                 "(tipo, nombres, apellidos, documento, telefono, email, activo) " +
                 "VALUES ('EMPLEADO', ?, ?, ?, ?, ?, 1)";
         String sqlEmpleado = "INSERT INTO empleado (id_persona, id_cargo, fecha_ingreso, contrasena_hash, salario) " +
-                "VALUES (?, ?, CURDATE(), ?, ?)";
+                "VALUES (?, ?, CURRENT_DATE, ?, ?)";
 
         Connection conexion = null;
         try {
@@ -163,6 +163,7 @@ public class PersonaDAO {
                     conexion.rollback();
                     return false;
                 }
+
                 idPersona = rs.getInt(1);
             }
 
@@ -194,6 +195,110 @@ public class PersonaDAO {
                 /* ignore */ }
         }
         return false;
+    }
+
+    public boolean crearProveedor(String empresa, String nit, String nombre, String apellido,
+            String email, String telefono, String direccion) {
+        String sqlPersona = "INSERT INTO persona "
+                + "(tipo, nombres, apellidos, documento, telefono, email, direccion, activo) "
+                + "VALUES ('PROVEEDOR', ?, ?, ?, ?, ?, ?, TRUE)";
+        String sqlProveedor = "INSERT INTO proveedor (id_persona, nombre_empresa, nit) VALUES (?, ?, ?)";
+        Connection conexion = null;
+        try {
+            conexion = conexionBD.obtenerConexion();
+            conexion.setAutoCommit(false);
+            int idPersona;
+            try (PreparedStatement ps = conexion.prepareStatement(sqlPersona, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, nombre);
+                ps.setString(2, apellido);
+                ps.setString(3, nit);
+                ps.setString(4, telefono);
+                ps.setString(5, email);
+                ps.setString(6, direccion);
+                ps.executeUpdate();
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (!rs.next()) {
+                        conexion.rollback();
+                        return false;
+                    }
+                    idPersona = rs.getInt(1);
+                }
+            }
+            try (PreparedStatement ps = conexion.prepareStatement(sqlProveedor)) {
+                ps.setInt(1, idPersona);
+                ps.setString(2, empresa);
+                ps.setString(3, nit);
+                ps.executeUpdate();
+            }
+            conexion.commit();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error al crear proveedor: " + e.getMessage());
+            try {
+                if (conexion != null) conexion.rollback();
+            } catch (SQLException rollbackError) {
+                System.err.println("Error al deshacer proveedor: " + rollbackError.getMessage());
+            }
+            return false;
+        } finally {
+            cerrarTransaccion(conexion);
+        }
+    }
+
+    public boolean actualizarProveedor(int idPersona, String empresa, String nit, String nombre,
+            String apellido, String email, String telefono, String direccion) {
+        String sqlPersona = "UPDATE persona SET nombres = ?, apellidos = ?, documento = ?, "
+                + "telefono = ?, email = ?, direccion = ? WHERE id_persona = ? AND tipo = 'PROVEEDOR'";
+        String sqlProveedor = "UPDATE proveedor SET nombre_empresa = ?, nit = ? WHERE id_persona = ?";
+        Connection conexion = null;
+        try {
+            conexion = conexionBD.obtenerConexion();
+            conexion.setAutoCommit(false);
+            try (PreparedStatement ps = conexion.prepareStatement(sqlPersona)) {
+                ps.setString(1, nombre);
+                ps.setString(2, apellido);
+                ps.setString(3, nit);
+                ps.setString(4, telefono);
+                ps.setString(5, email);
+                ps.setString(6, direccion);
+                ps.setInt(7, idPersona);
+                if (ps.executeUpdate() == 0) {
+                    conexion.rollback();
+                    return false;
+                }
+            }
+            try (PreparedStatement ps = conexion.prepareStatement(sqlProveedor)) {
+                ps.setString(1, empresa);
+                ps.setString(2, nit);
+                ps.setInt(3, idPersona);
+                if (ps.executeUpdate() == 0) {
+                    conexion.rollback();
+                    return false;
+                }
+            }
+            conexion.commit();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("Error al actualizar proveedor: " + e.getMessage());
+            try {
+                if (conexion != null) conexion.rollback();
+            } catch (SQLException rollbackError) {
+                System.err.println("Error al deshacer proveedor: " + rollbackError.getMessage());
+            }
+            return false;
+        } finally {
+            cerrarTransaccion(conexion);
+        }
+    }
+
+    private void cerrarTransaccion(Connection conexion) {
+        if (conexion == null) return;
+        try {
+            conexion.setAutoCommit(true);
+            conexion.close();
+        } catch (SQLException e) {
+            System.err.println("Error al cerrar conexión: " + e.getMessage());
+        }
     }
 
     // ── Actualizar empleado ────────────────────────────────────────────────────

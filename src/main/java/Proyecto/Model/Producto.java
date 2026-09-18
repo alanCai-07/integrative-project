@@ -11,10 +11,12 @@ public class Producto {
     private double precioVenta;
     private int stockActual;
     private int stockMinimo;
+    private String imagenUrl;
     private Boolean activo;
 
     // Constructor sin parámetros
     public Producto() {
+        this.imagenUrl = "assets/img/default.png";
         this.activo = true;
     }
 
@@ -29,6 +31,7 @@ public class Producto {
         this.precioVenta = precioVenta;
         this.stockActual = stockActual;
         this.stockMinimo = stockMinimo;
+        this.imagenUrl = "assets/img/default.png";
         this.activo = true;
     }
 
@@ -109,6 +112,16 @@ public class Producto {
             throw new IllegalArgumentException("El stock mínimo no puede ser negativo");
         }
         this.stockMinimo = stockMinimo;
+    }
+
+    public String getImagenUrl() {
+        return imagenUrl;
+    }
+
+    public void setImagenUrl(String imagenUrl) {
+        this.imagenUrl = imagenUrl == null || imagenUrl.isBlank()
+                ? "assets/img/default.png"
+                : imagenUrl.trim();
     }
 
     public Boolean getActivo() {

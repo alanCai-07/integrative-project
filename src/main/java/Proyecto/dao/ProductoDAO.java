@@ -11,8 +11,8 @@ public class ProductoDAO {
 
     // Crear producto
     public boolean crearProducto(Producto producto) {
-        String sql = "INSERT INTO producto (id_categoria, nombre, descripcion, precio_compra, precio_venta, stock_actual, stock_minimo, activo) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO producto (id_categoria, nombre, descripcion, precio_compra, precio_venta, " +
+                     "stock_actual, stock_minimo, imagen_url, activo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conexion = conexionBD.obtenerConexion();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {
@@ -24,7 +24,8 @@ public class ProductoDAO {
             pstmt.setDouble(5, producto.getPrecioVenta());
             pstmt.setInt(6, producto.getCantidad());
             pstmt.setInt(7, 5); // Stock mínimo por defecto
-            pstmt.setBoolean(8, true);
+            pstmt.setString(8, producto.getImagenUrl());
+            pstmt.setBoolean(9, true);
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -113,7 +114,7 @@ public class ProductoDAO {
     // Actualizar producto
     public boolean actualizarProducto(Producto producto) {
         String sql = "UPDATE producto SET id_categoria = ?, nombre = ?, descripcion = ?, " +
-                     "precio_compra = ?, precio_venta = ?, stock_actual = ? WHERE id_producto = ?";
+                     "precio_compra = ?, precio_venta = ?, stock_actual = ?, imagen_url = ? WHERE id_producto = ?";
 
         try (Connection conexion = conexionBD.obtenerConexion();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {
@@ -124,7 +125,8 @@ public class ProductoDAO {
             pstmt.setDouble(4, producto.getPrecioCompra());
             pstmt.setDouble(5, producto.getPrecioVenta());
             pstmt.setInt(6, producto.getCantidad());
-            pstmt.setInt(7, producto.getIdProducto());
+            pstmt.setString(7, producto.getImagenUrl());
+            pstmt.setInt(8, producto.getIdProducto());
 
             return pstmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -165,6 +167,7 @@ public class ProductoDAO {
         producto.setPrecioVenta(rs.getDouble("precio_venta"));
         producto.setCantidad(rs.getInt("stock_actual"));
         producto.setStockMinimo(rs.getInt("stock_minimo"));
+        producto.setImagenUrl(rs.getString("imagen_url"));
         producto.setActivo(rs.getBoolean("activo"));
 
         return producto;

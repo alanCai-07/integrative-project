@@ -18,12 +18,26 @@
 
     <dependencies>
 
-        <!-- MySQL Connector -->
+       <!-- PostgreSQL -->
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <version>9.7.0</version>
-            <scope>compile</scope>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.4</version>
+        </dependency>
+
+         <!-- Pool de conexiones para evitar reconexiones lentas con Neon -->
+         <dependency>
+             <groupId>com.zaxxer</groupId>
+             <artifactId>HikariCP</artifactId>
+             <version>5.1.0</version>
+         </dependency>
+
+        <!-- JUnit Jupiter -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- JavaFX con classifier win (incluye .dll nativos para Windows) -->
@@ -119,6 +133,13 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- 4. Test plugin: ejecutar con mvn test -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
             </plugin>
 
         </plugins>

@@ -42,7 +42,7 @@ public class conexionApp {
 
         if (conexion != null) {
             System.out.println("[ConexionApp] La aplicacion se conecto correctamente a: "
-                    + obtenerPropiedad("db.url"));
+                    + obtenerPropiedad("db.host"));
             conexionBD.cerrarConexion(conexion);
             return true;
         } else {
@@ -59,9 +59,9 @@ public class conexionApp {
         System.out.println("  Configuracion de la aplicacion");
         System.out.println("========================================");
         System.out.println("  Host    : " + obtenerPropiedad("db.host"));
-        System.out.println("  Puerto  : " + obtenerPropiedad("db.port"));
-        System.out.println("  Base BD : " + obtenerPropiedad("db.name"));
-        System.out.println("  Usuario : " + obtenerPropiedad("db.user"));
+        System.out.println("  Puerto  : " + obtenerPropiedad("db.puerto"));
+        System.out.println("  Base BD : " + obtenerPropiedad("db.nombre"));
+        System.out.println("  Usuario : " + obtenerPropiedad("db.usuario"));
         System.out.println("  Password: ********** (oculta)");
         System.out.println("========================================");
     }

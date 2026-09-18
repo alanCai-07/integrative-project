@@ -65,17 +65,6 @@ public class DocumentoDAO {
                 System.err.println("DocumentoDAO.crearDocumento.getGeneratedKeys: " + e.getMessage());
             }
 
-            if (ultimoId == -1) {
-                try (Statement stmt = conexion.createStatement();
-                        ResultSet rs2 = stmt.executeQuery("SELECT LAST_INSERT_ID()")) {
-                    if (rs2.next()) {
-                        ultimoId = rs2.getLong(1);
-                    }
-                } catch (SQLException e) {
-                    System.err.println("DocumentoDAO.crearDocumento.SELECT LAST_INSERT_ID: " + e.getMessage());
-                }
-            }
-
             return ultimoId != -1 ? (int) ultimoId : -1;
 
         } catch (SQLException e) {
