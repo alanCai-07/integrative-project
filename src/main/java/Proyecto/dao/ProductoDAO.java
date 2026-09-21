@@ -36,7 +36,9 @@ public class ProductoDAO {
 
     // Obtener producto por ID
     public Producto obtenerProductoporId(int idProducto) {
-        String sql = "SELECT * FROM producto WHERE id_producto = ?";
+        String sql = "SELECT p.*, c.nombre AS categoria_nombre, c.descripcion AS categoria_descripcion "
+                   + "FROM producto p LEFT JOIN categoria c ON c.id_categoria = p.id_categoria "
+                   + "WHERE p.id_producto = ?";
 
         try (Connection conexion = conexionBD.obtenerConexion();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {
@@ -55,7 +57,9 @@ public class ProductoDAO {
 
     // Obtener todos los productos
     public List<Producto> obtenerTodosProductos() {
-        String sql = "SELECT * FROM producto WHERE activo = true";
+        String sql = "SELECT p.*, c.nombre AS categoria_nombre, c.descripcion AS categoria_descripcion "
+                   + "FROM producto p LEFT JOIN categoria c ON c.id_categoria = p.id_categoria "
+                   + "WHERE p.activo = true";
         List<Producto> productos = new ArrayList<>();
 
         try (Connection conexion = conexionBD.obtenerConexion();
@@ -73,7 +77,9 @@ public class ProductoDAO {
 
     // Obtener productos por categoría
     public List<Producto> obtenerProductosPorCategoria(int idCategoria) {
-        String sql = "SELECT * FROM producto WHERE id_categoria = ? AND activo = true";
+        String sql = "SELECT p.*, c.nombre AS categoria_nombre, c.descripcion AS categoria_descripcion "
+                   + "FROM producto p LEFT JOIN categoria c ON c.id_categoria = p.id_categoria "
+                   + "WHERE p.id_categoria = ? AND p.activo = true";
         List<Producto> productos = new ArrayList<>();
 
         try (Connection conexion = conexionBD.obtenerConexion();
@@ -93,7 +99,9 @@ public class ProductoDAO {
 
     // Buscar productos por nombre
     public List<Producto> buscarProductosPorNombre(String nombre) {
-        String sql = "SELECT * FROM producto WHERE nombre LIKE ? AND activo = true";
+        String sql = "SELECT p.*, c.nombre AS categoria_nombre, c.descripcion AS categoria_descripcion "
+                   + "FROM producto p LEFT JOIN categoria c ON c.id_categoria = p.id_categoria "
+                   + "WHERE p.nombre LIKE ? AND p.activo = true";
         List<Producto> productos = new ArrayList<>();
 
         try (Connection conexion = conexionBD.obtenerConexion();
@@ -152,10 +160,11 @@ public class ProductoDAO {
 
     // Mapear ResultSet a Producto
     private Producto mapearProducto(ResultSet rs) throws SQLException {
+        String nombreCategoria = rs.getString("categoria_nombre");
         Categoria categoria = new Categoria(
             rs.getInt("id_categoria"),
-            "",
-            ""
+            nombreCategoria == null ? "" : nombreCategoria,
+            rs.getString("categoria_descripcion")
         );
 
         Producto producto = new Producto();
