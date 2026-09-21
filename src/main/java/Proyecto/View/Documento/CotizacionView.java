@@ -4,6 +4,7 @@ import Proyecto.Model.Cliente;
 import Proyecto.Model.Producto;
 import Proyecto.services.PersonaServices;
 import Proyecto.services.ProductoServices;
+import Proyecto.util.ProductoImageHelper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -116,6 +117,22 @@ public class CotizacionView {
         listProductos = new ListView<>();
         listProductos.setPrefHeight(200);
         VBox.setVgrow(listProductos, Priority.ALWAYS);
+        listProductos.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(String texto, boolean empty) {
+                super.updateItem(texto, empty);
+                if (empty || texto == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                setText(texto);
+                int index = getIndex();
+                setGraphic(index >= 0 && index < productosFiltradosLista.size()
+                        ? ProductoImageHelper.crearVista(productosFiltradosLista.get(index).getImagenUrl(), 42, 42)
+                        : null);
+            }
+        });
 
         Spinner<Integer> spinnerCantidad = new Spinner<>(1, 9999, 1);
         spinnerCantidad.setEditable(true);

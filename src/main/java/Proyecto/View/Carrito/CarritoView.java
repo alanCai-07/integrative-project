@@ -3,6 +3,7 @@ package Proyecto.View.Carrito;
 import Proyecto.Model.Cliente;
 import Proyecto.services.CarritoServices;
 import Proyecto.services.DocumentoServices;
+import Proyecto.util.ProductoImageHelper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -65,6 +66,18 @@ public class CarritoView {
         tabla.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         VBox.setVgrow(tabla, Priority.ALWAYS);
 
+        TableColumn<ItemCarrito, String> colImagen = new TableColumn<>("Imagen");
+        colImagen.setMaxWidth(80);
+        colImagen.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getImagenUrl()));
+        colImagen.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String imagenUrl, boolean empty) {
+                super.updateItem(imagenUrl, empty);
+                setText(null);
+                setGraphic(empty ? null : ProductoImageHelper.crearVista(imagenUrl, 42, 42));
+            }
+        });
+
         TableColumn<ItemCarrito, String> colNombre = new TableColumn<>("Producto");
         colNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
 
@@ -110,7 +123,7 @@ public class CarritoView {
             }
         });
 
-        tabla.getColumns().addAll(colNombre, colPrecio, colCantidad, colSubtotal, colAcciones);
+        tabla.getColumns().addAll(colImagen, colNombre, colPrecio, colCantidad, colSubtotal, colAcciones);
         tabla.setRowFactory(tv -> {
             TableRow<ItemCarrito> row = new TableRow<>();
             row.setStyle("-fx-cell-size: 40px;");
@@ -155,7 +168,8 @@ public class CarritoView {
                         i.getProducto().getIdProducto(),
                         i.getProducto().getNombre(),
                         i.getProducto().getPrecioVenta(),
-                        i.getCantidad()));
+                        i.getCantidad(),
+                        i.getProducto().getImagenUrl()));
             }
         } catch (Exception ex) {
             // Si el servicio aún no está implementado, mostramos tabla vacía
@@ -251,12 +265,14 @@ public class CarritoView {
         private final String nombre;
         private final double precio;
         private final int cantidad;
+        private final String imagenUrl;
 
-        public ItemCarrito(int idProducto, String nombre, double precio, int cantidad) {
+        public ItemCarrito(int idProducto, String nombre, double precio, int cantidad, String imagenUrl) {
             this.idProducto = idProducto;
             this.nombre = nombre;
             this.precio = precio;
             this.cantidad = cantidad;
+            this.imagenUrl = imagenUrl;
         }
 
         public int getIdProducto() {
@@ -273,6 +289,10 @@ public class CarritoView {
 
         public int getCantidad() {
             return cantidad;
+        }
+
+        public String getImagenUrl() {
+            return imagenUrl;
         }
     }
 }

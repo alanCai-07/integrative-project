@@ -7,6 +7,7 @@ import Proyecto.dao.InventarioDAO;
 import Proyecto.dao.PersonaDAO;
 import Proyecto.services.PersonaServices;
 import Proyecto.services.ProductoServices;
+import Proyecto.util.ProductoImageHelper;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -169,6 +170,22 @@ public class VentasPosView {
         listProductos = new ListView<>();
         listProductos.setPrefHeight(240);
         VBox.setVgrow(listProductos, Priority.ALWAYS);
+        listProductos.setCellFactory(list -> new ListCell<>() {
+            @Override
+            protected void updateItem(String texto, boolean empty) {
+                super.updateItem(texto, empty);
+                if (empty || texto == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                setText(texto);
+                int index = getIndex();
+                setGraphic(index >= 0 && index < productosFiltrados.size()
+                        ? ProductoImageHelper.crearVista(productosFiltrados.get(index).getImagenUrl(), 42, 42)
+                        : null);
+            }
+        });
         listProductos.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2)
                 agregarProducto();

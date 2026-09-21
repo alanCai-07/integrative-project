@@ -4,6 +4,7 @@ import Proyecto.Model.Cliente;
 import Proyecto.Model.Producto;
 import Proyecto.services.CarritoServices;
 import Proyecto.services.ProductoServices;
+import Proyecto.util.ProductoImageHelper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -85,6 +86,18 @@ public class ProductoView {
         TableColumn<FilaProducto, String> colNombre = new TableColumn<>("Producto");
         colNombre.setCellValueFactory(new PropertyValueFactory<>("nombre"));
 
+        TableColumn<FilaProducto, String> colImagen = new TableColumn<>("Imagen");
+        colImagen.setMaxWidth(90);
+        colImagen.setCellValueFactory(new PropertyValueFactory<>("imagenUrl"));
+        colImagen.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String imagenUrl, boolean empty) {
+                super.updateItem(imagenUrl, empty);
+                setText(null);
+                setGraphic(empty ? null : ProductoImageHelper.crearVista(imagenUrl, 42, 42));
+            }
+        });
+
         TableColumn<FilaProducto, String> colCategoria = new TableColumn<>("Categoría");
         colCategoria.setCellValueFactory(new PropertyValueFactory<>("categoria"));
 
@@ -118,7 +131,7 @@ public class ProductoView {
                 ".table-view .column-header-background { -fx-background-color: #0A1933; }" +
                 ".table-view .column-header .label { -fx-text-fill: white; -fx-font-weight: bold; }");
 
-        tablaProductos.getColumns().addAll(colId, colNombre, colCategoria, colPrecio, colStock, colAccion);
+        tablaProductos.getColumns().addAll(colId, colImagen, colNombre, colCategoria, colPrecio, colStock, colAccion);
         tablaProductos.setRowFactory(tv -> {
             TableRow<FilaProducto> row = new TableRow<>();
             row.setStyle("-fx-cell-size: 40px;");
@@ -141,7 +154,7 @@ public class ProductoView {
                 datos.add(new FilaProducto(
                         p.getIdProducto(), p.getNombre(),
                         p.getCategoria() != null ? p.getCategoria().getNombre() : "Sin categoría",
-                        p.getPrecioVenta(), p.getCantidad()));
+                        p.getPrecioVenta(), p.getCantidad(), p.getImagenUrl()));
             }
         }
     }
@@ -157,7 +170,7 @@ public class ProductoView {
                 datos.add(new FilaProducto(
                         p.getIdProducto(), p.getNombre(),
                         p.getCategoria() != null ? p.getCategoria().getNombre() : "Sin categoría",
-                        p.getPrecioVenta(), p.getCantidad()));
+                        p.getPrecioVenta(), p.getCantidad(), p.getImagenUrl()));
             }
         }
     }
@@ -242,14 +255,16 @@ public class ProductoView {
         private final double precioDouble;
         private final String precioDisplay;
         private final int    stock;
+        private final String imagenUrl;
 
-        public FilaProducto(int id, String nombre, String categoria, double precio, int stock) {
+        public FilaProducto(int id, String nombre, String categoria, double precio, int stock, String imagenUrl) {
             this.id            = id;
             this.nombre        = nombre;
             this.categoria     = categoria;
             this.precioDouble  = precio;
             this.precioDisplay = String.format("$%,.2f", precio);
             this.stock         = stock;
+            this.imagenUrl     = imagenUrl;
         }
 
         public int    getId()            { return id; }
@@ -259,5 +274,6 @@ public class ProductoView {
         public String getPrecioDisplay() { return precioDisplay; }
         public String getPrecio()        { return precioDisplay; }
         public int    getStock()         { return stock; }
+        public String getImagenUrl()     { return imagenUrl; }
     }
 }

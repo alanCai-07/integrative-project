@@ -21,6 +21,13 @@ public class ProductoServices {
     // Crear producto con validaciones
     public boolean crearProducto(int idCategoria, String nombre, String descripcion,
                                  double precioCompra, double precioVenta, int stockInicial) {
+        return crearProducto(idCategoria, nombre, descripcion, precioCompra, precioVenta, stockInicial,
+                "assets/img/default.png");
+    }
+
+    public boolean crearProducto(int idCategoria, String nombre, String descripcion,
+                                 double precioCompra, double precioVenta, int stockInicial,
+                                 String imagenUrl) {
 
         // Validar categoría
         Categoria categoria = categoriaDAO.obtenerCategoriaPorId(idCategoria);
@@ -42,6 +49,7 @@ public class ProductoServices {
         producto.setPrecioCompra(precioCompra);
         producto.setPrecioVenta(precioVenta);
         producto.setCantidad(stockInicial);
+        producto.setImagenUrl(imagenUrl);
 
         return productoDAO.crearProducto(producto);
     }
@@ -77,6 +85,12 @@ public class ProductoServices {
     // Actualizar producto
     public boolean actualizarProducto(int idProducto, String nombre, String descripcion,
                                       double precioCompra, double precioVenta, int cantidad) {
+        return actualizarProducto(idProducto, nombre, descripcion, precioCompra, precioVenta, cantidad, null);
+    }
+
+    public boolean actualizarProducto(int idProducto, String nombre, String descripcion,
+                                      double precioCompra, double precioVenta, int cantidad,
+                                      String imagenUrl) {
 
         Producto producto = productoDAO.obtenerProductoporId(idProducto);
         if (producto == null) {
@@ -94,6 +108,9 @@ public class ProductoServices {
         producto.setPrecioCompra(precioCompra);
         producto.setPrecioVenta(precioVenta);
         producto.setCantidad(cantidad);
+        if (imagenUrl != null && !imagenUrl.isBlank()) {
+            producto.setImagenUrl(imagenUrl);
+        }
 
         return productoDAO.actualizarProducto(producto);
     }

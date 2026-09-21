@@ -54,6 +54,6 @@ public class Categoria {
 
     @Override
     public String toString() {
-        return String.format("ID: %d, Nombre: %s, Activo: %s", idCategoria, nombre, activo);
+        return nombre != null && !nombre.isBlank() ? nombre : "Sin categoría";
     }
 }
