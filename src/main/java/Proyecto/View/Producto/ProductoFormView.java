@@ -218,7 +218,8 @@ public class ProductoFormView {
         int stock = Integer.parseInt(txtStock.getText().trim());
 
         boolean ok = editando
-                ? productoServices.actualizarProducto(idProducto, nombre, descripcion, precioCompra, precioVenta, stock,
+                ? productoServices.actualizarProducto(idProducto, categoria.getId(), nombre, descripcion,
+                        precioCompra, precioVenta, stock,
                         txtImagen.getText())
                 : productoServices.crearProducto(categoria.getId(), nombre, descripcion, precioCompra, precioVenta,
                         stock, txtImagen.getText());

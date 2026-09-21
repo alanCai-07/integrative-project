@@ -91,6 +91,12 @@ public class ProductoServices {
     public boolean actualizarProducto(int idProducto, String nombre, String descripcion,
                                       double precioCompra, double precioVenta, int cantidad,
                                       String imagenUrl) {
+        return actualizarProducto(idProducto, 0, nombre, descripcion, precioCompra, precioVenta, cantidad, imagenUrl);
+    }
+
+    public boolean actualizarProducto(int idProducto, int idCategoria, String nombre, String descripcion,
+                                      double precioCompra, double precioVenta, int cantidad,
+                                      String imagenUrl) {
 
         Producto producto = productoDAO.obtenerProductoporId(idProducto);
         if (producto == null) {
@@ -103,6 +109,14 @@ public class ProductoServices {
             return false;
         }
 
+        if (idCategoria > 0) {
+            Categoria categoria = categoriaDAO.obtenerCategoriaPorId(idCategoria);
+            if (categoria == null) {
+                System.out.println("Error: Categoría no encontrada");
+                return false;
+            }
+            producto.setCategoria(categoria);
+        }
         producto.setNombre(nombre.trim());
         producto.setDescripcion(descripcion);
         producto.setPrecioCompra(precioCompra);
