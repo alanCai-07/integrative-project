@@ -54,7 +54,7 @@ public class LoginView extends Application {
         VBox leftPanel = new VBox(20);
         leftPanel.setAlignment(Pos.CENTER);
         leftPanel.setPrefWidth(420);
-        leftPanel.setStyle("-fx-background-color: #0A1933;");
+        leftPanel.getStyleClass().add("login-brand");
 
         ImageView imgLogo = cargarLogo();
         Label lblNombre = new Label("TECHZONE");
@@ -77,7 +77,7 @@ public class LoginView extends Application {
         rightPanel.setHgap(10);
         rightPanel.setVgap(15);
         rightPanel.setPadding(new Insets(50));
-        rightPanel.setStyle("-fx-background-color: #0F1E37;");
+        rightPanel.getStyleClass().add("login-form");
 
         Label lblTitulo = new Label("INICIAR SESIÓN");
         lblTitulo.setFont(Font.font("Arial", FontWeight.BOLD, 24));
@@ -96,11 +96,7 @@ public class LoginView extends Application {
         txtEmail.setPromptText("usuario@correo.com");
         txtEmail.setPrefWidth(250);
         txtEmail.setFont(Font.font("Arial", 14));
-        txtEmail.setStyle(
-                "-fx-background-color: white;" +
-                "-fx-border-color: #00C8FF;" +
-                "-fx-border-width: 1.5;" +
-                "-fx-padding: 8;");
+        txtEmail.getStyleClass().add("login-field");
         rightPanel.add(txtEmail, 1, 1);
 
         Label lblPassword = new Label("Contraseña:");
@@ -112,11 +108,7 @@ public class LoginView extends Application {
         txtPassword.setPromptText("••••••••");
         txtPassword.setPrefWidth(250);
         txtPassword.setFont(Font.font("Arial", 14));
-        txtPassword.setStyle(
-                "-fx-background-color: white;" +
-                "-fx-border-color: #00C8FF;" +
-                "-fx-border-width: 1.5;" +
-                "-fx-padding: 8;");
+        txtPassword.getStyleClass().add("login-field");
         rightPanel.add(txtPassword, 1, 2);
 
         lblMensaje = new Label("");
@@ -154,6 +146,7 @@ public class LoginView extends Application {
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
 
         Scene scene = new Scene(mainPanel, 900, 600);
+        scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         stage.setScene(scene);
         stage.show();
     }

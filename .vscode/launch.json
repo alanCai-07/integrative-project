@@ -3,8 +3,9 @@
     "configurations": [
         {
             "type": "java",
-            "name": "▶ Ejecutar MainGUI (JavaFX)",
+            "name": "▶ Ejecutar MainGUI (JavaFX - normal)",
             "request": "launch",
+            "noDebug": true,
             "mainClass": "Proyecto.MainGUI",
             "projectName": "proyecto-integrador-pii",
             "vmArgs": "--module-path \"C:\\Users\\USUARIO\\.m2\\repository\\org\\openjfx\\javafx-base\\23.0.2\\javafx-base-23.0.2-win.jar;C:\\Users\\USUARIO\\.m2\\repository\\org\\openjfx\\javafx-graphics\\23.0.2\\javafx-graphics-23.0.2-win.jar;C:\\Users\\USUARIO\\.m2\\repository\\org\\openjfx\\javafx-controls\\23.0.2\\javafx-controls-23.0.2-win.jar;C:\\Users\\USUARIO\\.m2\\repository\\org\\openjfx\\javafx-fxml\\23.0.2\\javafx-fxml-23.0.2-win.jar;C:\\Users\\USUARIO\\.m2\\repository\\org\\openjfx\\javafx-swing\\23.0.2\\javafx-swing-23.0.2-win.jar\" --add-modules javafx.base,javafx.graphics,javafx.controls,javafx.fxml,javafx.swing"
