@@ -16,7 +16,9 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.stage.FileChooser;
 
+import java.io.File;
 import java.util.List;
 
 public class ProductoFormView {
@@ -27,6 +29,7 @@ public class ProductoFormView {
     private TextField txtPrecioCompra;
     private TextField txtPrecioVenta;
     private TextField txtStock;
+    private TextField txtImagen;
     private Button btnGuardar;
     private Button btnCancelar;
 
@@ -136,6 +139,16 @@ public class ProductoFormView {
         grid.add(etiqueta("Stock Inicial:"), 0, fila);
         grid.add(txtStock, 1, fila++);
 
+        txtImagen = campoTexto();
+        txtImagen.setEditable(false);
+        Button btnImagen = boton("SELECCIONAR", "#646464");
+        btnImagen.setPrefWidth(130);
+        btnImagen.setOnAction(e -> seleccionarImagen());
+        HBox imagenBox = new HBox(8, txtImagen, btnImagen);
+        HBox.setHgrow(txtImagen, Priority.ALWAYS);
+        grid.add(etiqueta("Imagen:"), 0, fila);
+        grid.add(imagenBox, 1, fila++);
+
         // Botones
         btnGuardar = boton(editando ? "ACTUALIZAR" : "GUARDAR", "#00C8FF");
         btnGuardar.setOnAction(e -> guardarProducto());
@@ -148,7 +161,7 @@ public class ProductoFormView {
         GridPane.setColumnSpan(btnBox, 2);
         grid.add(btnBox, 0, fila);
 
-        Scene scene = new Scene(grid, 500, 580);
+        Scene scene = new Scene(grid, 500, 640);
         dialogStage.setScene(scene);
         dialogStage.showAndWait();
     }
@@ -177,6 +190,7 @@ public class ProductoFormView {
         txtPrecioCompra.setText(String.valueOf(p.getPrecioCompra()));
         txtPrecioVenta.setText(String.valueOf(p.getPrecioVenta()));
         txtStock.setText(String.valueOf(p.getCantidad()));
+        txtImagen.setText(p.getImagenUrl());
 
         if (p.getCategoria() != null) {
             cbCategoria.getItems().stream()
@@ -199,9 +213,10 @@ public class ProductoFormView {
         int stock = Integer.parseInt(txtStock.getText().trim());
 
         boolean ok = editando
-                ? productoServices.actualizarProducto(idProducto, nombre, descripcion, precioCompra, precioVenta, stock)
+                ? productoServices.actualizarProducto(idProducto, nombre, descripcion, precioCompra, precioVenta, stock,
+                        txtImagen.getText())
                 : productoServices.crearProducto(categoria.getId(), nombre, descripcion, precioCompra, precioVenta,
-                        stock);
+                        stock, txtImagen.getText());
 
         if (ok) {
             guardadoExitoso = true;
@@ -209,6 +224,18 @@ public class ProductoFormView {
             dialogStage.close();
         } else {
             error("Error al " + (editando ? "actualizar" : "crear") + " el producto");
+        }
+
+    }
+
+    private void seleccionarImagen() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Seleccionar imagen del producto");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(
+                "Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
+        File archivo = chooser.showOpenDialog(dialogStage);
+        if (archivo != null) {
+            txtImagen.setText(archivo.getAbsolutePath());
         }
     }
 

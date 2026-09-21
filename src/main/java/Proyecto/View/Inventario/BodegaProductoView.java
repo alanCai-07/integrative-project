@@ -4,6 +4,7 @@ import Proyecto.Model.Categoria;
 import Proyecto.Model.Producto;
 import Proyecto.services.CategoriaServices;
 import Proyecto.services.ProductoServices;
+import Proyecto.View.Producto.ProductoFormView;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -18,6 +19,7 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.stage.Window;
 
 import java.util.List;
 
@@ -73,12 +75,14 @@ public class BodegaProductoView {
 
         Button btnBuscar = boton("Buscar", COLOR_CYAN);
         Button btnActualizar = boton("Actualizar", COLOR_AZUL);
+        Button btnEditar = boton("Editar", COLOR_AZUL);
         Button btnNuevo = boton("Nuevo producto", COLOR_VERDE);
         Button btnInhabilitar = boton("Inhabilitar", COLOR_ROJO);
         Button btnHabilitar = boton("Habilitar", COLOR_NARANJA);
 
         btnBuscar.setOnAction(e -> buscarProductos());
         btnActualizar.setOnAction(e -> cargarProductos());
+        btnEditar.setOnAction(e -> editarProducto());
         btnNuevo.setOnAction(e -> abrirFormularioNuevo());
         btnInhabilitar.setOnAction(e -> cambiarEstado(false));
         btnHabilitar.setOnAction(e -> cambiarEstado(true));
@@ -91,7 +95,7 @@ public class BodegaProductoView {
                 separadorVertical(),
                 btnActualizar,
                 separadorVertical(),
-                btnNuevo, btnInhabilitar, btnHabilitar);
+                btnEditar, btnNuevo, btnInhabilitar, btnHabilitar);
         barraBusqueda.setAlignment(Pos.CENTER_LEFT);
 
         // -- Tabla de productos -----------------------------------------------
@@ -240,6 +244,20 @@ public class BodegaProductoView {
     // =========================================================================
     // ACCIONES
     // =========================================================================
+
+    private void editarProducto() {
+        FilaProducto seleccionado = tablaProductos.getSelectionModel().getSelectedItem();
+        if (seleccionado == null) {
+            mostrarInfo("Selecciona un producto de la tabla.");
+            return;
+        }
+
+        Window owner = root.getScene() == null ? null : root.getScene().getWindow();
+        ProductoFormView formulario = new ProductoFormView(owner, seleccionado.getId());
+        if (formulario.isGuardadoExitoso()) {
+            cargarProductos();
+        }
+    }
 
     private void cambiarEstado(boolean activar) {
         FilaProducto seleccionado = tablaProductos.getSelectionModel().getSelectedItem();
