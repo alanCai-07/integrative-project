@@ -5,6 +5,7 @@ import Proyecto.Model.Producto;
 import Proyecto.services.CategoriaServices;
 import Proyecto.services.ProductoServices;
 import Proyecto.View.Producto.ProductoFormView;
+import Proyecto.util.ProductoImageHelper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -111,6 +112,18 @@ public class BodegaProductoView {
         TableColumn<FilaProducto, String> colNombre = new TableColumn<>("Nombre");
         colNombre.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getNombre()));
 
+        TableColumn<FilaProducto, String> colImagen = new TableColumn<>("Imagen");
+        colImagen.setMaxWidth(90);
+        colImagen.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getImagenUrl()));
+        colImagen.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String imagenUrl, boolean empty) {
+                super.updateItem(imagenUrl, empty);
+                setText(null);
+                setGraphic(empty ? null : ProductoImageHelper.crearVista(imagenUrl, 42, 42));
+            }
+        });
+
         TableColumn<FilaProducto, String> colCategoria = new TableColumn<>("Categoria");
         colCategoria.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getCategoria()));
         colCategoria.setMaxWidth(130);
@@ -166,7 +179,7 @@ public class BodegaProductoView {
         });
 
         tablaProductos.getColumns().addAll(
-                colId, colNombre, colCategoria,
+                colId, colImagen, colNombre, colCategoria,
                 colPrecioC, colPrecioV, colStock, colStockMin, colEstado);
 
         tablaProductos.setRowFactory(tv -> {
@@ -494,7 +507,8 @@ public class BodegaProductoView {
                 p.getPrecioVenta(),
                 p.getCantidad(),
                 p.getStockMinimo(),
-                Boolean.TRUE.equals(p.getActivo()) ? "Activo" : "Inactivo");
+                Boolean.TRUE.equals(p.getActivo()) ? "Activo" : "Inactivo",
+                p.getImagenUrl());
     }
 
     private Button boton(String texto, String color) {
@@ -553,10 +567,11 @@ public class BodegaProductoView {
         private final int stock;
         private final int stockMinimo;
         private final String estado;
+        private final String imagenUrl;
 
         public FilaProducto(int id, String nombre, String categoria,
                 double precioCompra, double precioVenta,
-                int stock, int stockMinimo, String estado) {
+                int stock, int stockMinimo, String estado, String imagenUrl) {
             this.id = id;
             this.nombre = nombre;
             this.categoria = categoria;
@@ -565,6 +580,7 @@ public class BodegaProductoView {
             this.stock = stock;
             this.stockMinimo = stockMinimo;
             this.estado = estado;
+            this.imagenUrl = imagenUrl;
         }
 
         public int getId() {
@@ -597,6 +613,10 @@ public class BodegaProductoView {
 
         public String getEstado() {
             return estado;
+        }
+
+        public String getImagenUrl() {
+            return imagenUrl;
         }
     }
 }

@@ -19,7 +19,12 @@ import javafx.stage.Window;
 import javafx.stage.FileChooser;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.UUID;
 
 public class ProductoFormView {
 
@@ -235,8 +240,24 @@ public class ProductoFormView {
                 "Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
         File archivo = chooser.showOpenDialog(dialogStage);
         if (archivo != null) {
-            txtImagen.setText(archivo.getAbsolutePath());
+            try {
+                Path carpetaImagenes = Path.of("assets", "img", "products");
+                Files.createDirectories(carpetaImagenes);
+
+                String extension = obtenerExtension(archivo.getName());
+                String nombreDestino = UUID.randomUUID() + extension;
+                Path destino = carpetaImagenes.resolve(nombreDestino);
+                Files.copy(archivo.toPath(), destino, StandardCopyOption.REPLACE_EXISTING);
+                txtImagen.setText(Path.of("assets", "img", "products", nombreDestino).toString());
+            } catch (IOException ex) {
+                error("No se pudo copiar la imagen del producto: " + ex.getMessage());
+            }
         }
+    }
+
+    private String obtenerExtension(String nombreArchivo) {
+        int punto = nombreArchivo.lastIndexOf('.');
+        return punto >= 0 ? nombreArchivo.substring(punto).toLowerCase() : ".png";
     }
 
     // ── Validación ───────────────────────────────────────────────────────────

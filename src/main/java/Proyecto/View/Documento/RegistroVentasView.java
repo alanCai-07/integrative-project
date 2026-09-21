@@ -1,6 +1,8 @@
 package Proyecto.View.Documento;
 
 import Proyecto.services.DocumentoServices;
+import Proyecto.services.ProductoServices;
+import Proyecto.util.ProductoImageHelper;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -24,6 +26,7 @@ import javafx.scene.text.FontWeight;
 public class RegistroVentasView {
 
     private final DocumentoServices documentoServices;
+    private final ProductoServices productoServices;
 
     private TableView<FilaVenta> tablaVentas;
     private ObservableList<FilaVenta> ventas;
@@ -35,6 +38,7 @@ public class RegistroVentasView {
 
     public RegistroVentasView() {
         this.documentoServices = new DocumentoServices();
+        this.productoServices = new ProductoServices();
         this.ventas = FXCollections.observableArrayList();
         build();
         cargarVentas();
@@ -118,6 +122,18 @@ public class RegistroVentasView {
         TableColumn<FilaVenta, String> colCliente = new TableColumn<>("Cliente");
         colCliente.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getCliente()));
 
+        TableColumn<FilaVenta, String> colImagen = new TableColumn<>("Producto");
+        colImagen.setMaxWidth(90);
+        colImagen.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getImagenUrl()));
+        colImagen.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String imagenUrl, boolean empty) {
+                super.updateItem(imagenUrl, empty);
+                setText(null);
+                setGraphic(empty ? null : ProductoImageHelper.crearVista(imagenUrl, 42, 42));
+            }
+        });
+
         TableColumn<FilaVenta, String> colFecha = new TableColumn<>("Fecha");
         colFecha.setCellValueFactory(d -> new SimpleStringProperty(d.getValue().getFecha()));
 
@@ -153,7 +169,7 @@ public class RegistroVentasView {
             }
         });
 
-        tablaVentas.getColumns().addAll(colId, colCliente, colFecha, colItems, colTotal, colEstado);
+        tablaVentas.getColumns().addAll(colId, colImagen, colCliente, colFecha, colItems, colTotal, colEstado);
         tablaVentas.setRowFactory(tv -> {
             TableRow<FilaVenta> row = new TableRow<>();
             row.setStyle("-fx-cell-size: 38px;");
@@ -231,7 +247,8 @@ public class RegistroVentasView {
                         v.getFecha().toString(),
                         v.getDetalles().size(),
                         v.getTotal(),
-                        v.getEstado()));
+                        v.getEstado(),
+                        obtenerImagenVenta(v)));
                 monto += v.getTotal();
             }
             lblTotalVentas.setText(String.valueOf(lista.size()));
@@ -260,15 +277,29 @@ public class RegistroVentasView {
                         v.getFecha().toString(),
                         v.getDetalles().size(),
                         v.getTotal(),
-                        v.getEstado()));
+                        v.getEstado(),
+                        obtenerImagenVenta(v)));
                 monto += v.getTotal();
             }
+
             lblTotalVentas.setText(String.valueOf(lista.size()));
             lblTotalMonto.setText(String.format("$%.2f", monto));
         } catch (Exception ex) {
             new Alert(Alert.AlertType.INFORMATION,
                     "Filtro no disponible aún.", ButtonType.OK).showAndWait();
         }
+    }
+
+    private String obtenerImagenVenta(Proyecto.Model.Venta venta) {
+        if (venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
+            return "assets/img/default.png";
+        }
+
+        String nombreProducto = venta.getDetalles().get(0).getProducto();
+        var productos = productoServices.buscarProductos(nombreProducto);
+        return productos.isEmpty()
+                ? "assets/img/default.png"
+                : productos.get(0).getImagenUrl();
     }
 
     private void exportarReporte() {
@@ -305,14 +336,17 @@ public class RegistroVentasView {
         private final int cantidadItems;
         private final double total;
         private final String estado;
+        private final String imagenUrl;
 
-        public FilaVenta(int id, String cliente, String fecha, int cantidadItems, double total, String estado) {
+        public FilaVenta(int id, String cliente, String fecha, int cantidadItems, double total, String estado,
+                         String imagenUrl) {
             this.id = id;
             this.cliente = cliente;
             this.fecha = fecha;
             this.cantidadItems = cantidadItems;
             this.total = total;
             this.estado = estado;
+            this.imagenUrl = imagenUrl;
         }
 
         public int getId() {
@@ -337,6 +371,10 @@ public class RegistroVentasView {
 
         public String getEstado() {
             return estado;
+        }
+
+        public String getImagenUrl() {
+            return imagenUrl;
         }
     }
 }
