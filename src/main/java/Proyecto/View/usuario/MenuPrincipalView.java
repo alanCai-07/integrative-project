@@ -80,16 +80,17 @@ public class MenuPrincipalView {
         stage.setMinHeight(600);
 
         mainLayout = new BorderPane();
-        mainLayout.setStyle("-fx-background-color: #F0F2F5;");
+        mainLayout.getStyleClass().add("app-shell");
         mainLayout.setTop(crearBarraSuperior());
         mainLayout.setLeft(crearMenuLateral());
 
         contentPanel = new StackPane();
-        contentPanel.setStyle("-fx-background-color: white;");
+        contentPanel.getStyleClass().add("content-panel");
         contentPanel.setPadding(new Insets(20));
         mainLayout.setCenter(contentPanel);
 
         Scene scene = new Scene(mainLayout);
+        scene.getStylesheets().add(getClass().getResource("/styles.css").toExternalForm());
         stage.setScene(scene);
         stage.show();
     }
@@ -100,15 +101,13 @@ public class MenuPrincipalView {
         topBar.setAlignment(Pos.CENTER_LEFT);
         topBar.setPrefHeight(62);
         topBar.setPadding(new Insets(0, 20, 0, 20));
-        topBar.setStyle("-fx-background-color: #0A1933;");
+        topBar.getStyleClass().add("top-bar");
 
         Label lblLogo = new Label("TECHZONE");
-        lblLogo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
-        lblLogo.setTextFill(Color.web("#00C8FF"));
+        lblLogo.getStyleClass().add("brand-title");
 
         Label lblGadgets = new Label(" GADGETS & HOBBIES");
-        lblGadgets.setFont(Font.font("Arial", 12));
-        lblGadgets.setTextFill(Color.web("#5588AA"));
+        lblGadgets.getStyleClass().add("brand-subtitle");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -120,17 +119,14 @@ public class MenuPrincipalView {
         Label lblRolBadge = new Label(rol);
         lblRolBadge.setFont(Font.font("Arial", FontWeight.BOLD, 10));
         lblRolBadge.setTextFill(Color.web("#0A1933"));
-        lblRolBadge.setStyle("-fx-background-color: " + colorDelRol(rol) + "; -fx-padding: 2 6 2 6;");
+        lblRolBadge.getStyleClass().add("role-badge");
+        lblRolBadge.setStyle("-fx-background-color: " + colorDelRol(rol) + ";");
 
         Label lblUser = new Label("  " + nombreUsuario);
-        lblUser.setTextFill(Color.WHITE);
-        lblUser.setFont(Font.font("Arial", 13));
+        lblUser.getStyleClass().add("user-name");
 
         Button btnLogout = new Button("Cerrar sesion");
-        btnLogout.setStyle(
-                "-fx-background-color: #C83C3C; -fx-text-fill: white;"
-                        + "-fx-font-weight: bold; -fx-border-width: 0;"
-                        + "-fx-cursor: hand; -fx-padding: 6 14 6 14;");
+        btnLogout.getStyleClass().add("logout-button");
         btnLogout.setOnAction(e -> cerrarSesion());
 
         HBox userBox = new HBox(10, lblRolBadge, lblUser, btnLogout);
@@ -172,7 +168,7 @@ public class MenuPrincipalView {
         VBox menuPanel = new VBox(4);
         menuPanel.setPrefWidth(240);
         menuPanel.setPadding(new Insets(18, 10, 18, 10));
-        menuPanel.setStyle("-fx-background-color: #1E2840;");
+        menuPanel.getStyleClass().add("side-menu");
 
         // PRINCIPAL
         if (esEmpleadoOAdmin()) {
@@ -249,9 +245,7 @@ public class MenuPrincipalView {
 
     private Label sectionLabel(String texto) {
         Label lbl = new Label(texto);
-        lbl.setFont(Font.font("Arial", FontWeight.BOLD, 10));
-        lbl.setTextFill(Color.web("#5588AA"));
-        lbl.setPadding(new Insets(12, 0, 4, 8));
+        lbl.getStyleClass().add("menu-section");
         return lbl;
     }
 
@@ -259,19 +253,7 @@ public class MenuPrincipalView {
         Button btn = new Button(texto);
         btn.setPrefSize(210, 42);
         btn.setMaxWidth(210);
-        btn.setFont(Font.font("Arial", FontWeight.BOLD, 13));
-        btn.setTextFill(Color.WHITE);
-        btn.setAlignment(Pos.CENTER_LEFT);
-        btn.setPadding(new Insets(0, 0, 0, 14));
-        estiloBtnNormal(btn);
-        btn.setOnMouseEntered(e -> {
-            if (btn != btnActivo)
-                btn.setStyle(ESTILO_HOVER);
-        });
-        btn.setOnMouseExited(e -> {
-            if (btn != btnActivo)
-                estiloBtnNormal(btn);
-        });
+        btn.getStyleClass().add("menu-button");
         btn.setOnAction(e -> {
             resaltarBoton(btn);
             cambiarPanel(accion);
@@ -279,19 +261,16 @@ public class MenuPrincipalView {
         return btn;
     }
 
-    private static final String ESTILO_NORMAL = "-fx-background-color: transparent; -fx-border-width: 0; -fx-cursor: hand;";
-    private static final String ESTILO_HOVER = "-fx-background-color: #3A4F6A;   -fx-border-width: 0; -fx-cursor: hand;";
-    private static final String ESTILO_ACTIVO = "-fx-background-color: #0096C8;   -fx-border-width: 0; -fx-cursor: hand;";
-
     private void estiloBtnNormal(Button b) {
-        b.setStyle(ESTILO_NORMAL);
+        b.getStyleClass().remove("menu-button-active");
     }
 
     private void resaltarBoton(Button sel) {
         if (btnActivo != null)
             estiloBtnNormal(btnActivo);
         btnActivo = sel;
-        btnActivo.setStyle(ESTILO_ACTIVO);
+        if (!btnActivo.getStyleClass().contains("menu-button-active"))
+            btnActivo.getStyleClass().add("menu-button-active");
     }
 
     // ── Navegacion ─────────────────────────────────────────────────────────────

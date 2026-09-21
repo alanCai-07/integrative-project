@@ -19,7 +19,8 @@ public class PersonaDAO {
                 "  AND p.tipo = 'CLIENTE' " +
                 "  AND (p.nombres   LIKE ? " +
                 "    OR p.apellidos LIKE ? " +
-                "    OR p.email     LIKE ?) " +
+                "    OR p.email     LIKE ? " +
+                "    OR CONCAT(p.nombres, ' ', p.apellidos) LIKE ?) " +
                 "ORDER BY p.nombres ASC " +
                 "LIMIT 10";
 
@@ -31,6 +32,7 @@ public class PersonaDAO {
             ps.setString(1, patron);
             ps.setString(2, patron);
             ps.setString(3, patron);
+            ps.setString(4, patron);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 resultados.add(mapearCliente(rs));
@@ -72,7 +74,7 @@ public class PersonaDAO {
     public boolean crearCliente(Cliente cliente) {
         String sqlPersona = "INSERT INTO persona " +
                 "(tipo, nombres, apellidos, documento, telefono, email, direccion, activo) " +
-                "VALUES ('CLIENTE', ?, ?, ?, ?, ?, ?, 1)";
+                "VALUES ('CLIENTE', ?, ?, ?, ?, ?, ?, TRUE)";
         String sqlCliente = "INSERT INTO cliente (id_persona, contrasena_hash) VALUES (?, ?)";
 
         Connection conexion = null;

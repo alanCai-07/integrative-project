@@ -5,6 +5,7 @@ import Proyecto.Model.Producto;
 import Proyecto.services.PersonaServices;
 import Proyecto.services.ProductoServices;
 import Proyecto.util.ProductoImageHelper;
+import Proyecto.util.CotizacionPdfGenerator;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -18,6 +19,10 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.stage.Window;
+import javafx.stage.FileChooser;
+import java.io.File;
+import java.io.IOException;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -40,6 +45,11 @@ public class CotizacionView {
     private TextField     txtBuscarProducto;
     private ListView<String> listProductos;
     private List<Producto>   productosFiltradosLista;
+    private VBox detalleProducto;
+    private Label lblDetalleNombre;
+    private Label lblDetalleMeta;
+    private Label lblDetalleDescripcion;
+    private StackPane detalleImagen;
 
     private TableView<ItemCotizacion> tablaCotizacion;
     private Label         lblSubtotal;
@@ -66,35 +76,44 @@ public class CotizacionView {
     @SuppressWarnings("unchecked")
     private void build() {
         root = new VBox(15);
-        root.setPadding(new Insets(15));
-        root.setStyle("-fx-background-color: white;");
+        root.setPadding(new Insets(12));
+        root.getStyleClass().add("quote-root");
         VBox.setVgrow(root, Priority.ALWAYS);
 
-        Label lblTitulo = new Label("Generacion de Cotizacion");
-        lblTitulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
-        lblTitulo.setTextFill(Color.web("#0A1933"));
+        Label lblTitulo = new Label("Generación de cotización");
+        lblTitulo.getStyleClass().add("quote-title");
+        Label lblSubtitulo = new Label("Crea una propuesta para tu cliente de forma rápida y ordenada");
+        lblSubtitulo.getStyleClass().add("quote-subtitle");
+        VBox encabezado = new VBox(3, lblTitulo, lblSubtitulo);
 
         HBox bodyLayout = new HBox(15);
         VBox.setVgrow(bodyLayout, Priority.ALWAYS);
 
         // ── Columna izquierda ─────────────────────────────────────────────
-        VBox leftCol = new VBox(12);
-        leftCol.setPrefWidth(320);
-        leftCol.setMaxWidth(340);
+        VBox leftCol = new VBox(8);
+        leftCol.setPrefWidth(390);
+        leftCol.setMinWidth(360);
+        leftCol.setMaxWidth(430);
 
         // Seccion cliente
-        VBox secCliente = seccion("Cliente");
+        VBox secCliente = seccion("1", "Cliente");
 
         txtBuscarCliente = campo("Buscar por nombre o correo...");
 
         Button btnBuscarCliente = boton("Buscar", "#00C8FF");
         btnBuscarCliente.setOnAction(e -> buscarCliente());
 
+        Button btnNuevoCliente = boton("Nuevo cliente", "#6c5ce7");
+        btnNuevoCliente.setOnAction(e -> registrarNuevoCliente());
+
         HBox buscarRow = new HBox(8, txtBuscarCliente, btnBuscarCliente);
         HBox.setHgrow(txtBuscarCliente, Priority.ALWAYS);
+        HBox nuevoClienteRow = new HBox(btnNuevoCliente);
+        nuevoClienteRow.setAlignment(Pos.CENTER_RIGHT);
 
         // Lista de resultados de clientes
         listClientes = new ListView<>();
+        listClientes.getStyleClass().add("quote-list");
         listClientes.setPrefHeight(100);
         listClientes.setVisible(false);
         listClientes.setManaged(false);
@@ -102,21 +121,23 @@ public class CotizacionView {
 
         lblClienteSeleccionado = new Label("Sin cliente seleccionado");
         lblClienteSeleccionado.setFont(Font.font("Arial", FontWeight.BOLD, 13));
-        lblClienteSeleccionado.setTextFill(Color.GRAY);
         lblClienteSeleccionado.setWrapText(true);
+        lblClienteSeleccionado.getStyleClass().add("quote-client-empty");
 
-        secCliente.getChildren().addAll(buscarRow, listClientes, lblClienteSeleccionado);
+        secCliente.getChildren().addAll(buscarRow, listClientes, lblClienteSeleccionado, nuevoClienteRow);
 
         // Seccion catalogo
-        VBox secCatalogo = seccion("Agregar Producto");
-        VBox.setVgrow(secCatalogo, Priority.ALWAYS);
+        VBox secCatalogo = seccion("2", "Agregar producto");
 
         txtBuscarProducto = campo("Buscar producto...");
         txtBuscarProducto.textProperty().addListener((obs, o, nv) -> filtrarProductos(nv));
 
         listProductos = new ListView<>();
-        listProductos.setPrefHeight(200);
-        VBox.setVgrow(listProductos, Priority.ALWAYS);
+        listProductos.getStyleClass().add("quote-list");
+        listProductos.setPrefHeight(170);
+        listProductos.setMinHeight(140);
+        listProductos.getSelectionModel().selectedIndexProperty().addListener(
+                (obs, anterior, actual) -> mostrarDetalleProducto(actual.intValue()));
         listProductos.setCellFactory(list -> new ListCell<>() {
             @Override
             protected void updateItem(String texto, boolean empty) {
@@ -147,19 +168,25 @@ public class CotizacionView {
         HBox cantRow = new HBox(8, lblCantidad, spinnerCantidad);
         cantRow.setAlignment(Pos.CENTER_LEFT);
 
-        secCatalogo.getChildren().addAll(txtBuscarProducto, listProductos, cantRow, btnAgregar);
+        detalleProducto = crearDetalleProducto();
+        detalleProducto.setMaxHeight(78);
+        HBox controlesProducto = new HBox(10, cantRow, btnAgregar);
+        controlesProducto.setAlignment(Pos.CENTER_LEFT);
+        HBox.setHgrow(btnAgregar, Priority.ALWAYS);
+        secCatalogo.getChildren().addAll(txtBuscarProducto, listProductos, controlesProducto, detalleProducto);
         leftCol.getChildren().addAll(secCliente, secCatalogo);
 
         // ── Columna derecha ───────────────────────────────────────────────
         VBox rightCol = new VBox(12);
         HBox.setHgrow(rightCol, Priority.ALWAYS);
 
-        VBox secCotizacion = seccion("Items de la Cotizacion");
-        VBox.setVgrow(secCotizacion, Priority.ALWAYS);
+        VBox secCotizacion = seccion("3", "Revisar cotización");
 
         tablaCotizacion = new TableView<>(itemsCotizacion);
+        tablaCotizacion.getStyleClass().add("quote-items");
         tablaCotizacion.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
-        VBox.setVgrow(tablaCotizacion, Priority.ALWAYS);
+        tablaCotizacion.setPrefHeight(220);
+        tablaCotizacion.setMinHeight(175);
         tablaCotizacion.setPlaceholder(new Label("Agrega productos desde el panel izquierdo."));
 
         TableColumn<ItemCotizacion, String> colProd = new TableColumn<>("Producto");
@@ -210,9 +237,8 @@ public class CotizacionView {
 
         lblSubtotal  = totalLabel("$0.00");
         lblDescuento = totalLabel("$0.00");
-        lblTotal     = new Label("$0.00");
-        lblTotal.setFont(Font.font("Arial", FontWeight.BOLD, 20));
-        lblTotal.setTextFill(Color.web("#0A1933"));
+        lblTotal = new Label("$0.00");
+        lblTotal.getStyleClass().add("quote-total");
 
         txtDescuento = campo("0");
         txtDescuento.setPrefWidth(80);
@@ -225,7 +251,7 @@ public class CotizacionView {
         secCotizacion.getChildren().addAll(tablaCotizacion, gridTotales);
 
         // Observaciones y acciones
-        VBox secAcciones = seccion("Observaciones y Acciones");
+        VBox secAcciones = seccion("4", "Finalizar");
         txtObservaciones = new TextArea();
         txtObservaciones.setPromptText("Notas adicionales para el cliente...");
         txtObservaciones.setPrefRowCount(3);
@@ -234,10 +260,15 @@ public class CotizacionView {
 
         HBox btnAcciones = new HBox(10);
         btnAcciones.setAlignment(Pos.CENTER_RIGHT);
+        btnAcciones.getStyleClass().add("quote-action-bar");
 
         Button btnLimpiar  = boton("Limpiar todo",        "#646464");
-        Button btnGenerar  = boton("Generar Cotizacion",  "#0A1933");
-        Button btnConfirmar = boton("Confirmar Venta",    "#1A8A2A");
+        Button btnGenerar  = boton("Generar cotización",  "#087FBD");
+        Button btnConfirmar = boton("Confirmar venta",    "#1A9B43");
+        btnGenerar.setStyle("");
+        btnConfirmar.setStyle("");
+        btnGenerar.getStyleClass().add("quote-primary-action");
+        btnConfirmar.getStyleClass().add("quote-success-action");
 
         btnLimpiar.setOnAction(e   -> limpiarCotizacion());
         btnGenerar.setOnAction(e   -> generarCotizacion());
@@ -248,7 +279,7 @@ public class CotizacionView {
 
         rightCol.getChildren().addAll(secCotizacion, secAcciones);
         bodyLayout.getChildren().addAll(leftCol, rightCol);
-        root.getChildren().addAll(lblTitulo, bodyLayout);
+        root.getChildren().addAll(encabezado, bodyLayout);
     }
 
     // ── Busqueda de clientes CORREGIDA ────────────────────────────────────────
@@ -270,9 +301,11 @@ public class CotizacionView {
 
         if (encontrados.isEmpty()) {
             lblClienteSeleccionado.setText("No se encontro ningun cliente con: " + query);
-            lblClienteSeleccionado.setTextFill(Color.web("#C83C3C"));
+            lblClienteSeleccionado.getStyleClass().remove("quote-client-selected");
+            lblClienteSeleccionado.getStyleClass().add("quote-client-empty");
             listClientes.setVisible(false);
             listClientes.setManaged(false);
+            preguntarRegistrarCliente(query);
             return;
         }
 
@@ -292,6 +325,23 @@ public class CotizacionView {
         }
     }
 
+    private void preguntarRegistrarCliente(String consulta) {
+        Alert alerta = new Alert(
+                Alert.AlertType.CONFIRMATION,
+                "No se encontró un cliente con:\n\"" + consulta
+                        + "\"\n\n¿Deseas registrarlo ahora?",
+                ButtonType.YES,
+                ButtonType.NO);
+        alerta.setTitle("Cliente no encontrado");
+        alerta.setHeaderText("Registrar nuevo cliente");
+
+        alerta.showAndWait().ifPresent(respuesta -> {
+            if (respuesta == ButtonType.YES) {
+                registrarNuevoCliente();
+            }
+        });
+    }
+
     private void seleccionarCliente() {
         int idx = listClientes.getSelectionModel().getSelectedIndex();
         if (idx < 0 || idx >= clientesEncontrados.size()) return;
@@ -301,11 +351,24 @@ public class CotizacionView {
             "Seleccionado: " + clienteSeleccionado.getNombre() +
             " " + clienteSeleccionado.getApellido() +
             "\n" + clienteSeleccionado.getEmail());
-        lblClienteSeleccionado.setTextFill(Color.web("#1A8A2A"));
+        lblClienteSeleccionado.getStyleClass().remove("quote-client-empty");
+        lblClienteSeleccionado.getStyleClass().add("quote-client-selected");
 
         // Ocultar la lista una vez seleccionado
         listClientes.setVisible(false);
         listClientes.setManaged(false);
+    }
+
+    private void registrarNuevoCliente() {
+        Window owner = root.getScene() == null ? null : root.getScene().getWindow();
+        ClienteCotizacionView registro = new ClienteCotizacionView(owner);
+        if (registro.isRegistradoExitoso()) {
+            lblClienteSeleccionado.setText(
+                    "Cliente registrado. Busca su nombre o correo para seleccionarlo.");
+            lblClienteSeleccionado.getStyleClass().remove("quote-client-selected");
+            lblClienteSeleccionado.getStyleClass().add("quote-client-empty");
+            txtBuscarCliente.requestFocus();
+        }
     }
 
     // ── Carga y filtrado de productos ─────────────────────────────────────────
@@ -341,7 +404,62 @@ public class CotizacionView {
                         p.getIdProducto(), p.getNombre(), p.getPrecioVenta()));
                 }
             }
+            mostrarDetalleProducto(-1);
         } catch (Exception ignored) {}
+    }
+
+    private VBox crearDetalleProducto() {
+        detalleImagen = new StackPane();
+        detalleImagen.setMinSize(58, 58);
+        detalleImagen.setPrefSize(58, 58);
+        detalleImagen.setStyle("-fx-background-color: #dceff6; -fx-background-radius: 6px;");
+
+        lblDetalleNombre = new Label("Selecciona un producto");
+        lblDetalleNombre.getStyleClass().add("quote-product-name");
+        lblDetalleNombre.setWrapText(true);
+
+        lblDetalleMeta = new Label("Verás aquí el precio y el stock disponible");
+        lblDetalleMeta.getStyleClass().add("quote-product-meta");
+        lblDetalleMeta.setWrapText(true);
+
+        lblDetalleDescripcion = new Label("Selecciona un producto de la lista para consultar sus detalles.");
+        lblDetalleDescripcion.getStyleClass().add("quote-product-description");
+        lblDetalleDescripcion.setWrapText(true);
+
+        VBox textos = new VBox(5, lblDetalleNombre, lblDetalleMeta, lblDetalleDescripcion);
+        HBox contenido = new HBox(12, detalleImagen, textos);
+        HBox.setHgrow(textos, Priority.ALWAYS);
+
+        detalleProducto = new VBox(contenido);
+        detalleProducto.getStyleClass().add("quote-product-detail");
+        return detalleProducto;
+    }
+
+    private void mostrarDetalleProducto(int indice) {
+        if (indice < 0 || indice >= productosFiltradosLista.size()) {
+            if (lblDetalleNombre != null) {
+                lblDetalleNombre.setText("Selecciona un producto");
+                lblDetalleMeta.setText("Verás aquí el precio y el stock disponible");
+                lblDetalleDescripcion.setText("Selecciona un producto de la lista para consultar sus detalles.");
+                detalleImagen.getChildren().clear();
+            }
+            return;
+        }
+
+        Producto producto = productosFiltradosLista.get(indice);
+        lblDetalleNombre.setText(producto.getNombre());
+        lblDetalleMeta.setText(String.format("$%,.0f  |  Stock disponible: %d",
+                producto.getPrecioVenta(), producto.getCantidad()));
+        String descripcion = producto.getDescripcion();
+        lblDetalleDescripcion.setText(descripcion == null || descripcion.isBlank()
+                ? "Este producto no tiene descripción registrada."
+                : descripcion);
+
+        detalleImagen.getChildren().clear();
+        Node imagen = ProductoImageHelper.crearVista(producto.getImagenUrl(), 54, 54);
+        if (imagen != null) {
+            detalleImagen.getChildren().add(imagen);
+        }
     }
 
     // ── Acciones ─────────────────────────────────────────────────────────────
@@ -386,6 +504,42 @@ public class CotizacionView {
 
     private void generarCotizacion() {
         if (itemsCotizacion.isEmpty()) { info("Agrega al menos un producto."); return; }
+        if (clienteSeleccionado == null) {
+            info("Selecciona un cliente antes de generar la cotización.");
+            return;
+        }
+
+        FileChooser selector = new FileChooser();
+        selector.setTitle("Guardar cotización en PDF");
+        selector.setInitialFileName("cotizacion-" + LocalDate.now() + ".pdf");
+        selector.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Documento PDF", "*.pdf"));
+        Window owner = root.getScene() == null ? null : root.getScene().getWindow();
+        File destino = selector.showSaveDialog(owner);
+        if (destino == null) {
+            return;
+        }
+        if (!destino.getName().toLowerCase().endsWith(".pdf")) {
+            destino = new File(destino.getAbsolutePath() + ".pdf");
+        }
+
+        double descuento;
+        try {
+            descuento = Double.parseDouble(txtDescuento.getText().trim());
+        } catch (NumberFormatException e) {
+            descuento = 0;
+        }
+        try {
+            CotizacionPdfGenerator.generar(destino.toPath(), clienteSeleccionado,
+                    itemsCotizacion, descuento, txtObservaciones.getText());
+            info("Cotización PDF generada correctamente en:\n" + destino.getAbsolutePath());
+        } catch (IOException | RuntimeException e) {
+            String detalle = e.getMessage() == null || e.getMessage().isBlank()
+                    ? e.getClass().getSimpleName()
+                    : e.getMessage();
+            new Alert(Alert.AlertType.ERROR,
+                    "No se pudo generar el PDF.\n\n" + detalle, ButtonType.OK).showAndWait();
+        }
 
         StringBuilder sb = new StringBuilder();
         sb.append("===========================================\n");
@@ -450,7 +604,8 @@ public class CotizacionView {
         txtDescuento.setText("0");
         txtObservaciones.clear();
         lblClienteSeleccionado.setText("Sin cliente seleccionado");
-        lblClienteSeleccionado.setTextFill(Color.GRAY);
+        lblClienteSeleccionado.getStyleClass().remove("quote-client-selected");
+        lblClienteSeleccionado.getStyleClass().add("quote-client-empty");
         listClientes.getItems().clear();
         listClientes.setVisible(false);
         listClientes.setManaged(false);
@@ -458,14 +613,17 @@ public class CotizacionView {
     }
 
     // ── Helpers UI ────────────────────────────────────────────────────────────
-    private VBox seccion(String titulo) {
+    private VBox seccion(String paso, String titulo) {
         VBox sec = new VBox(10);
-        sec.setPadding(new Insets(15));
-        sec.setStyle("-fx-background-color: #FAFAFA; -fx-border-color: #E0E0E0; -fx-border-width: 1;");
+        sec.getStyleClass().add("quote-section");
+        HBox encabezado = new HBox(8);
+        encabezado.setAlignment(Pos.CENTER_LEFT);
+        Label lblPaso = new Label(paso);
+        lblPaso.getStyleClass().add("quote-step");
         Label lbl = new Label(titulo);
-        lbl.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        lbl.setTextFill(Color.web("#0A1933"));
-        sec.getChildren().add(lbl);
+        lbl.getStyleClass().add("quote-section-title");
+        encabezado.getChildren().addAll(lblPaso, lbl);
+        sec.getChildren().add(encabezado);
         return sec;
     }
 
@@ -473,7 +631,7 @@ public class CotizacionView {
         TextField tf = new TextField();
         tf.setPromptText(prompt);
         tf.setFont(Font.font("Arial", 12));
-        tf.setStyle("-fx-border-color: #C0C0C0; -fx-border-width: 1; -fx-padding: 7;");
+        tf.getStyleClass().add("quote-search");
         return tf;
     }
 

@@ -43,6 +43,31 @@ public class PersonaServices {
         return personaDAO.crearCliente(cliente);
     }
 
+    public boolean registrarClienteParaCotizacion(String nombre, String apellido, String email,
+            String documento, String telefono, String direccion) {
+        if (nombre == null || nombre.trim().isEmpty()
+                || apellido == null || apellido.trim().isEmpty()
+                || documento == null || documento.trim().isEmpty()) {
+            System.out.println("Error: nombre, apellido y documento son requeridos");
+            return false;
+        }
+
+        String emailNormalizado = email == null ? "" : email.trim().toLowerCase();
+        if (!emailNormalizado.isEmpty() && personaDAO.emailExiste(emailNormalizado)) {
+            System.out.println("Error: el email ya esta registrado");
+            return false;
+        }
+
+        Cliente cliente = new Cliente();
+        cliente.setNombre(nombre.trim());
+        cliente.setApellido(apellido.trim());
+        cliente.setDocumento(documento.trim());
+        cliente.setEmail(emailNormalizado);
+        cliente.setTelefono(telefono == null ? "" : telefono.trim());
+        cliente.setDireccion(direccion == null ? "" : direccion.trim());
+        return personaDAO.crearCliente(cliente);
+    }
+
     public boolean crearEmpleado(String nombre, String apellido, String email,
             String telefono, String documento,
             String cargo, String password, double salario) {
