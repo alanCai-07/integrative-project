@@ -1,4 +1,4 @@
-package Proyecto.View.Usuario;
+package Proyecto.View.usuario;
 
 import Proyecto.Model.Cliente;
 import Proyecto.services.PersonaServices;
