@@ -1,4 +1,4 @@
-package Proyecto.View.usuario;
+package Proyecto.View.Usuario;
 
 import Proyecto.services.PersonaServices;
 import javafx.application.Platform;
