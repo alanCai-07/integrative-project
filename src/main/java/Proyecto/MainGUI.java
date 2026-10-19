@@ -1,6 +1,6 @@
 package Proyecto;
 
-import Proyecto.View.usuario.LoginView;
+import Proyecto.View.Usuario.LoginView;
 import Proyecto.util.conexionBD;
 import javafx.application.Application;
 import javafx.stage.Stage;
