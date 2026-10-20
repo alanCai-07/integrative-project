@@ -2,8 +2,9 @@
 
 ## Descripcion
 
-Sistema de gestion de ventas e inventario **TechZone** desarrollado en Java 21
-con JavaFX. La aplicacion utiliza una arquitectura por capas:
+Sistema de gestion de ventas e inventario **TechZone** que se ejecuta en Java 25
+(LTS) y compila para Java 21, con JavaFX. La aplicacion utiliza una arquitectura
+por capas:
 
 **View -> Controller -> Services -> DAO -> PostgreSQL en Neon**
 
@@ -34,7 +35,7 @@ proyecto-integrador-pii/
 
 ## Tecnologias
 
-- Java 21
+- Java 25 (LTS) para ejecutar; Java 21 o superior para compilar
 - JavaFX 23.0.2
 - Maven
 - PostgreSQL en Neon
@@ -95,7 +96,8 @@ la base de datos desde cero.
 
 ## Requisitos
 
-- JDK 21.
+- Java 25 (LTS) para ejecutar la aplicacion.
+- JDK 21 o superior para compilarla.
 - Maven 3.9 o superior.
 - Una base de datos PostgreSQL en Neon.
 - Un archivo `config.properties` configurado con las credenciales reales.
