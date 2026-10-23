@@ -120,7 +120,7 @@
                         <phase>package</phase>
                         <goals><goal>shade</goal></goals>
                         <configuration>
-                            <!-- ✅ Esta línea elimina la generación del dependency-reduced-pom.xml -->
+                            <!--  Esta línea elimina la generación del dependency-reduced-pom.xml -->
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
