@@ -104,6 +104,10 @@ la base de datos desde cero.
 
 ## Compilar, probar y ejecutar
 
+Maven selecciona automáticamente los binarios nativos de JavaFX según el
+sistema operativo: `win` en Windows y `linux` en Linux. No cambies el
+classifier manualmente.
+
 Desde la raiz del proyecto:
 
 ```powershell
@@ -113,9 +117,15 @@ mvn clean compile
 # Ejecutar las pruebas
 mvn test
 
-# Ejecutar la aplicacion JavaFX
+# Ejecutar la aplicacion JavaFX desde Maven
 mvn javafx:run
 ```
+
+En VS Code también puedes usar la configuración **Ejecutar TechZone** o el
+botón **Run Java** junto a `main` en
+[MainGUI.java](src/main/java/Proyecto/MainGUI.java). La extensión Java tomará
+las dependencias del proyecto Maven y usará el classifier correspondiente al
+sistema operativo.
 
 ## Usuarios de prueba
 
