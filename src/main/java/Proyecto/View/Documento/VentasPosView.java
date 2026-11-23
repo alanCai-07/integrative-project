@@ -1,10 +1,16 @@
 package Proyecto.View.Documento;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+
 import Proyecto.Model.Cliente;
 import Proyecto.Model.Producto;
-import Proyecto.dao.DocumentoDAO;
-import Proyecto.dao.InventarioDAO;
 import Proyecto.dao.PersonaDAO;
+import Proyecto.dao.ProcedimientosDAO;
 import Proyecto.services.PersonaServices;
 import Proyecto.services.ProductoServices;
 import Proyecto.util.ProductoImageHelper;
@@ -17,28 +23,41 @@ import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Separator;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 
 public class VentasPosView {
 
     private final int empleadoId;
 
     private final ProductoServices productoServices;
-    private final DocumentoDAO documentoDAO;
-    private final InventarioDAO inventarioDAO;
     private final PersonaDAO personaDAO;
     private final PersonaServices personaServices;
+    private final ProcedimientosDAO procedimientosDAO = new ProcedimientosDAO();
 
     private ObservableList<ItemVenta> itemsVenta;
     private List<Producto> productosFiltrados;
@@ -69,8 +88,6 @@ public class VentasPosView {
     public VentasPosView(int empleadoId) {
         this.empleadoId = empleadoId;
         this.productoServices = new ProductoServices();
-        this.documentoDAO = new DocumentoDAO();
-        this.inventarioDAO = new InventarioDAO();
         this.personaDAO = new PersonaDAO();
         this.personaServices = new PersonaServices();
         this.itemsVenta = FXCollections.observableArrayList();
@@ -442,7 +459,7 @@ public class VentasPosView {
             }
 
             // Contrasena temporal: nombre+documento (el cliente la cambia desde su perfil)
-            String passwordTemporal = nombre.toLowerCase().replaceAll("\\s+", "") + documento;
+            String passwordTemporal = java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 12);
 
             okBtn.setDisable(true);
             okBtn.setText("Registrando...");
@@ -609,41 +626,31 @@ public class VentasPosView {
         conf.setTitle("Confirmar Cobro");
 
         conf.showAndWait().ifPresent(r -> {
-            if (r != ButtonType.YES)
-                return;
+            if (r != ButtonType.YES) return;
 
             try {
-                double subtotalSinIva = itemsVenta.stream()
-                        .mapToDouble(i -> i.getPrecio() * i.getCantidad()).sum();
-                double totalConIva = subtotalSinIva * 1.19;
+                StringBuilder json = new StringBuilder("[");
+                for (int i = 0; i < itemsVenta.size(); i++) {
+                    ItemVenta item = itemsVenta.get(i);
+                    if (i > 0) json.append(",");
+                    json.append(String.format(java.util.Locale.US,
+                            "{\"id\":%d,\"qty\":%d,\"precio\":%.2f}",
+                            item.getIdProducto(), item.getCantidad(), item.getPrecio()));
+                }
+                json.append("]");
 
-                int idDocumento = documentoDAO.crearDocumento(
-                        1, // Factura de Venta
-                        clienteActual.getId(), // id_persona del cliente real
-                        empleadoId, // id del cajero autenticado
-                        idMetodoPago,
-                        0, // descuento
-                        totalConIva,
-                        "Venta POS - Metodo: " + metodo);
+                java.util.Map<String, Object> res = procedimientosDAO.registrarVenta(
+                        clienteActual.getId(), empleadoId, idMetodoPago, json.toString());
 
+                int idDocumento = ((Number) res.getOrDefault("idDocumento", -1)).intValue();
                 if (idDocumento == -1) {
                     new Alert(Alert.AlertType.ERROR,
-                            "Error al registrar la venta en la base de datos.", ButtonType.OK).showAndWait();
+                            String.valueOf(res.getOrDefault("mensaje", "Error al registrar la venta.")),
+                            ButtonType.OK).showAndWait();
+                    cargarProductos("");
                     return;
                 }
 
-                // Registrar movimientos de inventario y descontar stock
-                for (ItemVenta item : itemsVenta) {
-                    inventarioDAO.registrarMovimientoConPrecio(
-                            idDocumento,
-                            item.getIdProducto(),
-                            empleadoId,
-                            item.getCantidad(),
-                            item.getPrecio());
-                    inventarioDAO.actualizarStock(item.getIdProducto(), -item.getCantidad());
-                }
-
-                // Emitir factura y limpiar ticket
                 emitirFactura(metodo, idDocumento, clienteActual);
                 itemsVenta.clear();
                 actualizarTotales();
@@ -651,13 +658,11 @@ public class VentasPosView {
                 lblClienteInfo.setText("Sin cliente seleccionado");
                 lblClienteInfo.setTextFill(Color.GRAY);
                 txtBuscarCliente.clear();
-                cargarProductos(""); // refrescar stock visible
+                cargarProductos("");
 
             } catch (Exception ex) {
-                ex.printStackTrace();
                 new Alert(Alert.AlertType.ERROR,
-                        "Error al registrar la venta: " + ex.getClass().getSimpleName()
-                                + " - " + ex.getMessage(), ButtonType.OK).showAndWait();
+                        "Error al registrar la venta: " + ex.getMessage(), ButtonType.OK).showAndWait();
             }
         });
     }
@@ -821,5 +826,8 @@ public class VentasPosView {
         public void setCantidad(int c) {
             this.cantidad = c;
         }
+
+
     }
+    
 }

@@ -139,7 +139,7 @@ public class DocumentoController {
     }
 
     // Obtener movimientos de inventario de un documento
-    public List<Map<String, Object>> obtenerDetallesDocumento(int idDocumento) {
-        return inventarioDAO.obtenerMovimientosPorDocumento(idDocumento);
+    public void obtenerDetallesDocumento(int idDocumento) {
+        inventarioDAO.obtenerMovimientosPorDocumento(idDocumento);
     }
 }

@@ -1,8 +1,9 @@
 package Proyecto.View.Admin;
 
+import java.util.List;
+import java.util.Map;
+
 import Proyecto.Model.Cliente;
-import Proyecto.Model.Producto;
-import Proyecto.Model.Venta;
 import Proyecto.services.CategoriaServices;
 import Proyecto.services.DocumentoServices;
 import Proyecto.services.InventarioServices;
@@ -16,18 +17,30 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 public class AdminDashboardView {
 
@@ -196,25 +209,42 @@ public class AdminDashboardView {
     }
 
     private Canvas crearGraficoBarras() {
-        Canvas c = new Canvas(700, 130);
+        Canvas c = new Canvas(700, 140);
         GraphicsContext gc = c.getGraphicsContext2D();
-        String[] meses   = {"Dic", "Ene", "Feb", "Mar", "Abr"};
-        int[]    valores = {30, 55, 40, 70, 60};
-        double ml = 40, mb = 25, aw = 700 - ml - 20, ah = 130 - mb - 10;
-        double bw = aw / meses.length - 8;
+        List<Map<String, Object>> datos = new Proyecto.dao.InventarioDAO().obtenerVentasPorMes(5);
+
+        if (datos.isEmpty()) {
+            gc.setFill(Color.GRAY);
+            gc.setFont(Font.font("Arial", 12));
+            gc.fillText("Sin ventas registradas en los ultimos 5 meses.", 40, 70);
+            return c;
+        }
+
+        double maxVenta = datos.stream()
+                .mapToDouble(d -> ((Number) d.get("totalVentas")).doubleValue())
+                .max().orElse(1.0);
+        if (maxVenta <= 0) maxVenta = 1.0;
+
+        double ml = 40, mb = 25, aw = 700 - ml - 20, ah = 140 - mb - 20;
+        double bw = Math.min(80, aw / datos.size() - 12);
         gc.setStroke(Color.LIGHTGRAY);
-        gc.strokeLine(ml, 5, ml, 130 - mb);
-        gc.strokeLine(ml, 130 - mb, 690, 130 - mb);
-        for (int i = 0; i < meses.length; i++) {
-            double bh = valores[i] * ah / 100.0;
-            double x  = ml + i * (bw + 8);
-            double y  = 130 - mb - bh;
+        gc.strokeLine(ml, 10, ml, 140 - mb);
+        gc.strokeLine(ml, 140 - mb, 690, 140 - mb);
+
+        for (int i = 0; i < datos.size(); i++) {
+            Map<String, Object> fila = datos.get(i);
+            double val = ((Number) fila.get("totalVentas")).doubleValue();
+            String etiqueta = String.valueOf(fila.get("etiqueta"));
+            double bh = (val / maxVenta) * ah;
+            double x = ml + 15 + i * (bw + 15);
+            double y = 140 - mb - bh;
+
             gc.setFill(Color.web("#00C8FF"));
             gc.fillRoundRect(x, y, bw, bh, 6, 6);
             gc.setFill(Color.web("#0A1933"));
-            gc.setFont(Font.font("Arial", 11));
-            gc.fillText(meses[i], x + bw / 4, 130 - 6);
-            gc.fillText(valores[i] + "%", x + 2, y - 3);
+            gc.setFont(Font.font("Arial", 10));
+            gc.fillText(etiqueta, x, 140 - 6);
+            gc.fillText(String.format("$%,.0f", val), x, Math.max(12, y - 4));
         }
         return c;
     }
@@ -605,108 +635,62 @@ public class AdminDashboardView {
     // Muestra: ID, nombre, categoria, precio compra, precio venta, stock, minimo
     // -------------------------------------------------------------------------
     private String reporteInventarioActual() {
-        List<Producto> productos = productoServices.obtenerTodosLosProductos();
-
+        List<Map<String, Object>> filas = new Proyecto.dao.InventarioDAO().reporteInventarioActual();
         StringBuilder sb = new StringBuilder();
-        sb.append("INVENTARIO ACTUAL\n");
-        sb.append("=================\n\n");
+        sb.append("INVENTARIO ACTUAL VALORIZADO\n============================\n\n");
         sb.append(String.format("%-5s %-28s %-14s %10s %10s %8s %8s\n",
                 "ID", "PRODUCTO", "CATEGORIA", "P.COMPRA", "P.VENTA", "STOCK", "MINIMO"));
         sb.append("-".repeat(88)).append("\n");
 
-        double valorInventario = 0;
-        int totalProductos     = 0;
-        int bajoMinimo         = 0;
+        double valorCosto = 0, valorVenta = 0;
+        int bajoMinimo = 0;
 
-        for (Producto p : productos) {
-            String cat = p.getCategoria() != null ? p.getCategoria().getNombre() : "Sin categoria";
+        for (Map<String, Object> f : filas) {
+            int stock = ((Number) f.get("stockActual")).intValue();
+            int min = ((Number) f.get("stockMinimo")).intValue();
             sb.append(String.format("%-5d %-28s %-14s %10.0f %10.0f %8d %8d\n",
-                    p.getIdProducto(),
-                    truncar(p.getNombre(), 26),
-                    truncar(cat, 12),
-                    p.getPrecioCompra(),
-                    p.getPrecioVenta(),
-                    p.getCantidad(),
-                    p.getStockMinimo()));
-
-            valorInventario += p.getPrecioVenta() * p.getCantidad();
-            totalProductos++;
-            if (p.getCantidad() <= p.getStockMinimo()) bajoMinimo++;
+                    ((Number) f.get("idProducto")).intValue(),
+                    truncar(String.valueOf(f.get("nombre")), 26),
+                    truncar(String.valueOf(f.get("categoria")), 12),
+                    ((Number) f.get("precioCompra")).doubleValue(),
+                    ((Number) f.get("precioVenta")).doubleValue(),
+                    stock, min));
+            valorCosto += ((Number) f.get("valorCosto")).doubleValue();
+            valorVenta += ((Number) f.get("valorVenta")).doubleValue();
+            if (stock <= min) bajoMinimo++;
         }
 
         sb.append("-".repeat(88)).append("\n");
-        sb.append(String.format("Total productos activos          : %d\n",        totalProductos));
-        sb.append(String.format("Productos bajo o en stock minimo : %d\n",        bajoMinimo));
-        sb.append(String.format("Valor total del inventario       : $%,.0f\n",   valorInventario));
-
-        if (totalProductos == 0) sb.append("\nNo hay productos registrados.\n");
-
+        sb.append(String.format("Total productos activos          : %d\n", filas.size()));
+        sb.append(String.format("Productos bajo o en stock minimo : %d\n", bajoMinimo));
+        sb.append(String.format("Valor total al costo             : $%,.0f\n", valorCosto));
+        sb.append(String.format("Valor total a precio de venta    : $%,.0f\n", valorVenta));
         return sb.toString();
     }
-
     // -------------------------------------------------------------------------
     // REPORTE 2 — Clientes Frecuentes
     // Fuente: documentoServices.obtenerTodasLasVentas()
     // Muestra: ranking de los 10 clientes con mas compras y monto gastado
     // -------------------------------------------------------------------------
     private String reporteClientesFrecuentes() {
-        List<Venta> ventas = documentoServices.obtenerTodasLasVentas();
-
-        // Acumular cantidad de compras y monto por cliente
-        Map<Integer, String>  nombres    = new HashMap<>();
-        Map<Integer, Integer> cantCompras= new HashMap<>();
-        Map<Integer, Double>  totalGasto = new HashMap<>();
-
-        for (Venta v : ventas) {
-            if (v.getCliente() == null) continue;
-            int    id     = v.getCliente().getId();
-            String nombre = v.getCliente().getNombre() + " " + v.getCliente().getApellido();
-
-            // Excluir registros sinteticos generados cuando id_persona no es cliente
-            if (nombre.startsWith("Persona ID-")) continue;
-
-            nombres.put(id, nombre);
-            cantCompras.merge(id, 1, Integer::sum);
-            totalGasto.merge(id, v.getTotal(), Double::sum);
-        }
-
-        // Ordenar por mayor numero de compras
-        List<Map.Entry<Integer, Integer>> ordenados = new ArrayList<>(cantCompras.entrySet());
-        ordenados.sort((a, b) -> b.getValue().compareTo(a.getValue()));
-
+        List<Map<String, Object>> filas = new Proyecto.dao.InventarioDAO()
+                .reporteClientesFrecuentes("2000-01-01", "2099-12-31");
         StringBuilder sb = new StringBuilder();
-        sb.append("TOP CLIENTES FRECUENTES\n");
-        sb.append("=======================\n\n");
-        sb.append(String.format("%-4s %-30s %10s %16s\n",
-                "N.", "CLIENTE", "COMPRAS", "TOTAL GASTADO"));
+        sb.append("TOP CLIENTES FRECUENTES\n=======================\n\n");
+        sb.append(String.format("%-4s %-30s %10s %16s\n", "N.", "CLIENTE", "COMPRAS", "TOTAL GASTADO"));
         sb.append("-".repeat(63)).append("\n");
 
         int pos = 1;
-        for (Map.Entry<Integer, Integer> entry : ordenados) {
-            if (pos > 10) break;
-            int id = entry.getKey();
+        for (Map<String, Object> f : filas) {
             sb.append(String.format("%-4d %-30s %10d %16s\n",
-                    pos,
-                    truncar(nombres.getOrDefault(id, "ID-" + id), 28),
-                    entry.getValue(),
-                    String.format("$%,.0f", totalGasto.getOrDefault(id, 0.0))));
-            pos++;
+                    pos++,
+                    truncar(String.valueOf(f.get("cliente")), 28),
+                    ((Number) f.get("totalCompras")).intValue(),
+                    String.format("$%,.0f", ((Number) f.get("montoTotal")).doubleValue())));
         }
-
-        if (ordenados.isEmpty()) {
-            sb.append("\nNo hay datos de ventas disponibles.\n");
-            sb.append("Realiza al menos una venta para ver este reporte.\n");
-        } else {
-            sb.append("-".repeat(63)).append("\n");
-            int totalCompras = cantCompras.values().stream().mapToInt(Integer::intValue).sum();
-            double totalMontoGlobal = totalGasto.values().stream().mapToDouble(Double::doubleValue).sum();
-            sb.append(String.format("Total ventas registradas : %d\n",      totalCompras));
-            sb.append(String.format("Monto total vendido      : $%,.0f\n", totalMontoGlobal));
-        }
-
+        if (filas.isEmpty()) sb.append("\nNo hay ventas completadas registradas.\n");
         return sb.toString();
     }
-
     // -------------------------------------------------------------------------
     // REPORTE 3 — Rotacion de Productos
     // Fuente: inventarioServices.reporteMovimientos() — filtra solo salidas
@@ -714,72 +698,28 @@ public class AdminDashboardView {
     // Muestra: productos ordenados por unidades vendidas de mayor a menor
     // -------------------------------------------------------------------------
     private String reporteRotacionProductos() {
-        List<Map<String, Object>> movimientos = inventarioServices.reporteMovimientos(
-                null, "2000-01-01", "2099-12-31");
-
-        // Acumular solo movimientos de salida (ventas)
-        Map<String, Integer> unidadesVendidas = new LinkedHashMap<>();
-        Map<String, Double>  ingresosPorProd  = new LinkedHashMap<>();
-
-        for (Map<String, Object> m : movimientos) {
-            Object efectoObj = m.get("efecto_en_inventario");
-            if (efectoObj == null) continue;
-            int efecto = ((Number) efectoObj).intValue();
-            if (efecto != -1) continue;  // Solo salidas (ventas)
-
-            String  producto = (String) m.getOrDefault("producto", "Desconocido");
-            int     cantidad = ((Number) m.getOrDefault("cantidad", 0)).intValue();
-            Object  subObj   = m.get("subtotal_linea");
-            double  subtotal = subObj != null ? ((Number) subObj).doubleValue() : 0.0;
-
-            unidadesVendidas.merge(producto, cantidad, Integer::sum);
-            ingresosPorProd.merge(producto,  subtotal, Double::sum);
-        }
-
-        // Ordenar por mayor cantidad vendida
-        List<Map.Entry<String, Integer>> ordenados = new ArrayList<>(unidadesVendidas.entrySet());
-        ordenados.sort((a, b) -> b.getValue().compareTo(a.getValue()));
-
+        List<Map<String, Object>> filas = new Proyecto.dao.InventarioDAO()
+                .reporteRotacionProductos("2000-01-01", "2099-12-31");
         StringBuilder sb = new StringBuilder();
-        sb.append("ROTACION DE PRODUCTOS\n");
-        sb.append("=====================\n\n");
-        sb.append(String.format("%-4s %-32s %14s %16s\n",
-                "N.", "PRODUCTO", "UNID. VENDIDAS", "INGRESOS"));
+        sb.append("ROTACION DE PRODUCTOS (VENTAS COMPLETADAS)\n==========================================\n\n");
+        sb.append(String.format("%-4s %-32s %14s %16s\n", "N.", "PRODUCTO", "UNID. VENDIDAS", "INGRESOS"));
         sb.append("-".repeat(68)).append("\n");
 
-        int    pos           = 1;
-        int    totalUnidades = 0;
+        int pos = 1, totalUnidades = 0;
         double totalIngresos = 0;
-
-        for (Map.Entry<String, Integer> entry : ordenados) {
-            String prod    = entry.getKey();
-            int    unids   = entry.getValue();
-            double ingresos= ingresosPorProd.getOrDefault(prod, 0.0);
-
+        for (Map<String, Object> f : filas) {
+            int unids = ((Number) f.get("unidadesVendidas")).intValue();
+            double ing = ((Number) f.get("ingresos")).doubleValue();
             sb.append(String.format("%-4d %-32s %14d %16s\n",
-                    pos,
-                    truncar(prod, 30),
-                    unids,
-                    String.format("$%,.0f", ingresos)));
-
+                    pos++, truncar(String.valueOf(f.get("nombre")), 30), unids, String.format("$%,.0f", ing)));
             totalUnidades += unids;
-            totalIngresos += ingresos;
-            pos++;
+            totalIngresos += ing;
         }
-
         sb.append("-".repeat(68)).append("\n");
-
-        if (ordenados.isEmpty()) {
-            sb.append("\nNo hay movimientos de venta registrados.\n");
-            sb.append("Realiza al menos una venta para ver este reporte.\n");
-        } else {
-            sb.append(String.format("Total unidades vendidas : %d\n",       totalUnidades));
-            sb.append(String.format("Total ingresos          : $%,.0f\n",  totalIngresos));
-        }
-
+        sb.append(String.format("Total unidades vendidas : %d\n", totalUnidades));
+        sb.append(String.format("Total ingresos          : $%,.0f\n", totalIngresos));
         return sb.toString();
     }
-
     // -------------------------------------------------------------------------
     // REPORTE 4 — Rentabilidad por Categoria
     // Fuente: productoServices.obtenerTodosLosProductos()
@@ -787,71 +727,38 @@ public class AdminDashboardView {
     // Agrupa por categoria y muestra el margen promedio y el valor potencial
     // -------------------------------------------------------------------------
     private String reporteRentabilidadCategoria() {
-        List<Producto> productos = productoServices.obtenerTodosLosProductos();
-
-        // Acumular datos por categoria
-        Map<String, Double>  costoTotal  = new LinkedHashMap<>();
-        Map<String, Double>  ventaTotal  = new LinkedHashMap<>();
-        Map<String, Integer> cantProd    = new LinkedHashMap<>();
-
-        for (Producto p : productos) {
-            String cat    = p.getCategoria() != null ? p.getCategoria().getNombre() : "Sin Categoria";
-            double costo  = p.getPrecioCompra() * p.getCantidad();
-            double venta  = p.getPrecioVenta()  * p.getCantidad();
-
-            costoTotal.merge(cat, costo, Double::sum);
-            ventaTotal.merge(cat, venta, Double::sum);
-            cantProd.merge(cat, 1, Integer::sum);
-        }
-
+        List<Map<String, Object>> filas = new Proyecto.dao.InventarioDAO()
+                .reporteRentabilidadPorCategoria("2000-01-01", "2099-12-31");
         StringBuilder sb = new StringBuilder();
-        sb.append("RENTABILIDAD POR CATEGORIA\n");
-        sb.append("==========================\n\n");
-        sb.append(String.format("%-20s %7s %15s %15s %12s\n",
-                "CATEGORIA", "PRODS", "COSTO TOTAL", "VALOR VENTA", "MARGEN %"));
-        sb.append("-".repeat(72)).append("\n");
+        sb.append("RENTABILIDAD HISTORICA POR CATEGORIA\n====================================\n\n");
+        sb.append(String.format("%-20s %15s %15s %15s %10s\n",
+                "CATEGORIA", "INGRESOS", "COSTO HIST.", "UTILIDAD", "MARGEN %"));
+        sb.append("-".repeat(78)).append("\n");
 
-        double totalCostoGlobal = 0;
-        double totalVentaGlobal = 0;
-        int    totalProdGlobal  = 0;
-
-        for (String cat : ventaTotal.keySet()) {
-            double costo  = costoTotal.getOrDefault(cat, 0.0);
-            double venta  = ventaTotal.getOrDefault(cat, 0.0);
-            int    cant   = cantProd.getOrDefault(cat, 0);
-            double margen = costo > 0 ? ((venta - costo) / costo) * 100 : 0;
-
-            sb.append(String.format("%-20s %7d %15s %15s %11.1f%%\n",
-                    truncar(cat, 18),
-                    cant,
-                    String.format("$%,.0f", costo),
-                    String.format("$%,.0f", venta),
+        double totIng = 0, totCos = 0, totUti = 0;
+        for (Map<String, Object> f : filas) {
+            double ing = ((Number) f.get("ingresos")).doubleValue();
+            double cos = ((Number) f.get("costos")).doubleValue();
+            double uti = ((Number) f.get("utilidad")).doubleValue();
+            double margen = cos > 0 ? (uti / cos) * 100.0 : 0.0;
+            sb.append(String.format("%-20s %15s %15s %15s %9.1f%%\n",
+                    truncar(String.valueOf(f.get("categoria")), 18),
+                    String.format("$%,.0f", ing),
+                    String.format("$%,.0f", cos),
+                    String.format("$%,.0f", uti),
                     margen));
-
-            totalCostoGlobal += costo;
-            totalVentaGlobal += venta;
-            totalProdGlobal  += cant;
+            totIng += ing;
+            totCos += cos;
+            totUti += uti;
         }
-
-        double margenGlobal = totalCostoGlobal > 0
-                ? ((totalVentaGlobal - totalCostoGlobal) / totalCostoGlobal) * 100
-                : 0;
-
-        sb.append("-".repeat(72)).append("\n");
-        sb.append(String.format("%-20s %7d %15s %15s %11.1f%%\n",
+        sb.append("-".repeat(78)).append("\n");
+        double margenGlobal = totCos > 0 ? (totUti / totCos) * 100.0 : 0.0;
+        sb.append(String.format("%-20s %15s %15s %15s %9.1f%%\n",
                 "TOTAL GENERAL",
-                totalProdGlobal,
-                String.format("$%,.0f", totalCostoGlobal),
-                String.format("$%,.0f", totalVentaGlobal),
+                String.format("$%,.0f", totIng),
+                String.format("$%,.0f", totCos),
+                String.format("$%,.0f", totUti),
                 margenGlobal));
-
-        if (productos.isEmpty()) {
-            sb.append("\nNo hay productos registrados.\n");
-        } else {
-            sb.append("\nNota: Los valores se calculan sobre el stock actual disponible.\n");
-            sb.append("Margen % = ((Precio Venta - Precio Compra) / Precio Compra) x 100\n");
-        }
-
         return sb.toString();
     }
 

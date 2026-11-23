@@ -320,17 +320,7 @@ public class BodegaProductoView {
      * arquitectura existente.
      */
     private boolean habilitarProducto(int idProducto) {
-        try {
-            String sql = "UPDATE producto SET activo = TRUE WHERE id_producto = ?";
-            try (java.sql.Connection conn = Proyecto.util.conexionBD.obtenerConexion();
-                    java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setInt(1, idProducto);
-                return ps.executeUpdate() > 0;
-            }
-        } catch (java.sql.SQLException e) {
-            System.err.println("BodegaProductoView.habilitarProducto: " + e.getMessage());
-            return false;
-        }
+        return new Proyecto.dao.ProductoDAO().cambiarEstadoProducto(idProducto, true);
     }
 
     private void abrirFormularioNuevo() {
@@ -446,7 +436,11 @@ public class BodegaProductoView {
                 if (ok && !txtStockMinimo.getText().trim().isEmpty()) {
                     try {
                         int stockMin = Integer.parseInt(txtStockMinimo.getText().trim());
-                        actualizarStockMinimo(nombre, stockMin);
+                        List<Producto> creados = productoServices.buscarProductos(nombre);
+                        if (!creados.isEmpty()) {
+                            int idNuevo = creados.get(creados.size() - 1).getIdProducto();
+                            new Proyecto.dao.ProductoDAO().actualizarStockMinimo(idNuevo, stockMin);
+                        }
                     } catch (Exception ignored) {
                     }
                 }
@@ -473,22 +467,6 @@ public class BodegaProductoView {
 
         dlg.setResultConverter(bt -> null);
         dlg.showAndWait();
-    }
-
-    private void actualizarStockMinimo(String nombreProducto, int stockMin) {
-        try {
-            String sql = "UPDATE producto SET stock_minimo = ? WHERE id_producto = "
-                    + "(SELECT id_producto FROM producto WHERE nombre = ? "
-                    + "ORDER BY id_producto DESC LIMIT 1)";
-            try (java.sql.Connection conn = Proyecto.util.conexionBD.obtenerConexion();
-                    java.sql.PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setInt(1, stockMin);
-                ps.setString(2, nombreProducto);
-                ps.executeUpdate();
-            }
-        } catch (java.sql.SQLException e) {
-            System.err.println("BodegaProductoView.actualizarStockMinimo: " + e.getMessage());
-        }
     }
 
     // =========================================================================

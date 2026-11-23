@@ -9,12 +9,20 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Ejecuta operaciones transaccionales críticas de inventario y documentos.
+ * El ajuste físico de stock se delega al trigger trg_movimiento_stock en PostgreSQL.
+ *
+ * @author Allan Matthew Caicedo Montaño
+ * @author German Astudillo Astudillo
+ */
 public class ProcedimientosDAO {
 
     private static final Pattern PRODUCTO_JSON = Pattern.compile(
@@ -28,22 +36,36 @@ public class ProcedimientosDAO {
         try (Connection conexion = conexionBD.obtenerConexion()) {
             conexion.setAutoCommit(false);
             try {
+                if (idCliente <= 0) {
+                    throw new IllegalArgumentException("Debe seleccionar un cliente válido.");
+                }
+
                 List<LineaProducto> lineas = leerProductos(productosJson);
-                validarStock(conexion, lineas);
+                lineas.sort(Comparator.comparingInt(LineaProducto::id));
+
+                Map<Integer, Double> costosPorProducto = validarStockYCostos(conexion, lineas);
+                double tasaIva = obtenerParametro(conexion, "IVA_PORCENTAJE", 0.19);
 
                 int idDocumento = insertarDocumento(conexion, 1, idCliente, idEmpleado,
-                        idMetodoPago, null);
-                double total = insertarMovimientosYActualizarStock(
-                        conexion, idDocumento, idEmpleado, lineas, false);
-                actualizarTotales(conexion, idDocumento, total);
+                        idMetodoPago, null, null);
+
+                double subtotal = insertarMovimientos(
+                        conexion, idDocumento, idEmpleado, lineas, costosPorProducto);
+                double iva = Math.round(subtotal * tasaIva * 100.0) / 100.0;
+                double total = subtotal + iva;
+
+                actualizarTotales(conexion, idDocumento, subtotal, 0.0, iva, total);
                 conexion.commit();
 
                 resultado.put("idDocumento", idDocumento);
+                resultado.put("subtotal", subtotal);
+                resultado.put("iva", iva);
+                resultado.put("total", total);
                 resultado.put("mensaje", "Venta registrada exitosamente.");
             } catch (Exception e) {
                 rollback(conexion);
                 resultado.put("idDocumento", -1);
-                resultado.put("mensaje", "Error al registrar venta: " + e.getMessage());
+                resultado.put("mensaje", "No se pudo registrar la venta. La operación fue revertida y el stock no cambió. Detalle: " + e.getMessage());
             } finally {
                 conexion.setAutoCommit(true);
             }
@@ -61,12 +83,21 @@ public class ProcedimientosDAO {
         try (Connection conexion = conexionBD.obtenerConexion()) {
             conexion.setAutoCommit(false);
             try {
+                validarProveedorActivo(conexion, idProveedor);
                 List<LineaProducto> lineas = leerProductos(productosJson);
+                lineas.sort(Comparator.comparingInt(LineaProducto::id));
+
                 int idDocumento = insertarDocumento(conexion, 2, idProveedor, idEmpleado,
-                        0, nroFacturaExt);
-                double total = insertarMovimientosYActualizarStock(
-                        conexion, idDocumento, idEmpleado, lineas, true);
-                actualizarTotales(conexion, idDocumento, total);
+                        0, nroFacturaExt, null);
+
+                Map<Integer, Double> costosCompra = new HashMap<>();
+                for (LineaProducto l : lineas) {
+                    costosCompra.put(l.id(), l.precio());
+                }
+
+                double total = insertarMovimientos(
+                        conexion, idDocumento, idEmpleado, lineas, costosCompra);
+                actualizarTotales(conexion, idDocumento, total, 0.0, 0.0, total);
                 conexion.commit();
 
                 resultado.put("idDocumento", idDocumento);
@@ -92,31 +123,37 @@ public class ProcedimientosDAO {
         try (Connection conexion = conexionBD.obtenerConexion()) {
             conexion.setAutoCommit(false);
             try {
-                int efecto = obtenerEfecto(conexion, idTipoDoc);
-                int stock = obtenerStockBloqueado(conexion, idProducto);
-                if (efecto < 0 && stock < cantidad) {
-                    throw new IllegalArgumentException("Stock insuficiente para registrar la salida.");
+                if (observacion == null || observacion.trim().isEmpty()) {
+                    throw new IllegalArgumentException("La observación es obligatoria para registrar un ajuste o baja (RF-05).");
+                }
+                if (cantidad <= 0) {
+                    throw new IllegalArgumentException("La cantidad debe ser mayor que cero.");
                 }
 
-                int idDocumento = insertarDocumento(conexion, idTipoDoc, idEmpleado, idEmpleado,
-                        0, null, observacion);
+                int efecto = obtenerEfecto(conexion, idTipoDoc);
+                ProductoInfo info = obtenerProductoBloqueado(conexion, idProducto);
+                if (efecto < 0 && info.stock < cantidad) {
+                    throw new IllegalArgumentException("Stock insuficiente para registrar la salida. Disponible: " + info.stock);
+                }
+
+                int idDocumento = insertarDocumento(conexion, idTipoDoc, 0, idEmpleado,
+                        0, null, observacion.trim());
+
                 String sqlMovimiento = "INSERT INTO movimiento_inventario "
-                        + "(id_documento, id_producto, id_empleado, cantidad, precio_unitario) "
-                        + "VALUES (?, ?, ?, ?, 0)";
-                try (PreparedStatement ps = conexion.prepareStatement(sqlMovimiento);
-                     PreparedStatement psStock = conexion.prepareStatement(
-                             "UPDATE producto SET stock_actual = stock_actual + ? WHERE id_producto = ?")) {
+                        + "(id_documento, id_producto, id_empleado, cantidad, costo_unitario, precio_unitario) "
+                        + "VALUES (?, ?, ?, ?, ?, 0)";
+                try (PreparedStatement ps = conexion.prepareStatement(sqlMovimiento)) {
                     ps.setInt(1, idDocumento);
                     ps.setInt(2, idProducto);
                     setNullableInt(ps, 3, idEmpleado);
                     ps.setInt(4, cantidad);
+                    ps.setDouble(5, info.precioCompra);
                     ps.executeUpdate();
-
-                    psStock.setInt(1, efecto * cantidad);
-                    psStock.setInt(2, idProducto);
-                    psStock.executeUpdate();
                 }
+
+                actualizarTotales(conexion, idDocumento, 0.0, 0.0, 0.0, 0.0);
                 conexion.commit();
+
                 resultado.put("idDocumento", idDocumento);
                 resultado.put("mensaje", "Ajuste registrado correctamente.");
             } catch (Exception e) {
@@ -134,9 +171,7 @@ public class ProcedimientosDAO {
     }
 
     public List<Map<String, Object>> consultarStock(boolean soloAlertas) {
-        String filtro = soloAlertas
-                ? " AND p.stock_actual <= p.stock_minimo"
-                : "";
+        String filtro = soloAlertas ? " AND p.stock_actual <= p.stock_minimo" : "";
         String sql = "SELECT p.id_producto, p.nombre, c.nombre AS categoria, "
                 + "p.stock_actual, p.stock_minimo, "
                 + "(p.stock_actual - p.stock_minimo) AS diferencia "
@@ -169,13 +204,13 @@ public class ProcedimientosDAO {
         String sql = "SELECT m.id_movimiento, m.fecha_movimiento, td.descripcion AS tipo_documento, "
                 + "td.efecto_en_inventario, d.numero_doc_externo, p.nombre AS producto, "
                 + "m.cantidad, m.precio_unitario, m.subtotal_linea, "
-                + "CONCAT(pe.nombres, ' ', pe.apellidos) AS persona_doc, "
+                + "COALESCE(CONCAT(pe.nombres, ' ', pe.apellidos), 'Ajuste interno') AS persona_doc, "
                 + "COALESCE(CONCAT(emp.nombres, ' ', emp.apellidos), 'Sin empleado') AS empleado_reg "
                 + "FROM movimiento_inventario m "
                 + "JOIN documento d ON m.id_documento = d.id_documento "
                 + "JOIN tipo_documento td ON d.id_tipo_documento = td.id_tipo_documento "
                 + "JOIN producto p ON m.id_producto = p.id_producto "
-                + "JOIN persona pe ON d.id_persona = pe.id_persona "
+                + "LEFT JOIN persona pe ON d.id_persona = pe.id_persona "
                 + "LEFT JOIN empleado e ON m.id_empleado = e.id_persona "
                 + "LEFT JOIN persona emp ON e.id_persona = emp.id_persona "
                 + "WHERE (?::integer IS NULL OR m.id_producto = ?) "
@@ -218,14 +253,15 @@ public class ProcedimientosDAO {
     }
 
     public List<Map<String, Object>> historialCliente(int idCliente) {
-        String sql = "SELECT d.id_documento, d.fecha_documento, td.descripcion AS tipo, "
-                + "d.total, d.estado, COALESCE(mp.nombre, 'N/A') AS metodo_pago, "
+        String sql = "SELECT d.id_documento, d.numero_comprobante, d.fecha_documento, "
+                + "td.descripcion AS tipo, d.subtotal, d.iva, d.total, d.estado, "
+                + "COALESCE(mp.nombre, 'N/A') AS metodo_pago, "
                 + "COUNT(m.id_movimiento) AS cant_productos "
                 + "FROM documento d JOIN tipo_documento td ON d.id_tipo_documento = td.id_tipo_documento "
                 + "LEFT JOIN metodo_pago mp ON d.id_metodo_pago = mp.id_metodo_pago "
                 + "LEFT JOIN movimiento_inventario m ON d.id_documento = m.id_documento "
                 + "WHERE d.id_persona = ? "
-                + "GROUP BY d.id_documento, d.fecha_documento, td.descripcion, d.total, d.estado, mp.nombre "
+                + "GROUP BY d.id_documento, d.numero_comprobante, d.fecha_documento, td.descripcion, d.subtotal, d.iva, d.total, d.estado, mp.nombre "
                 + "ORDER BY d.fecha_documento DESC";
         List<Map<String, Object>> lista = new ArrayList<>();
 
@@ -236,8 +272,11 @@ public class ProcedimientosDAO {
                 while (rs.next()) {
                     Map<String, Object> fila = new HashMap<>();
                     fila.put("id_documento", rs.getInt("id_documento"));
+                    fila.put("numero_comprobante", rs.getInt("numero_comprobante"));
                     fila.put("fecha_documento", rs.getTimestamp("fecha_documento"));
                     fila.put("tipo", rs.getString("tipo"));
+                    fila.put("subtotal", rs.getBigDecimal("subtotal"));
+                    fila.put("iva", rs.getBigDecimal("iva"));
                     fila.put("total", rs.getBigDecimal("total"));
                     fila.put("estado", rs.getString("estado"));
                     fila.put("metodo_pago", rs.getString("metodo_pago"));
@@ -252,24 +291,21 @@ public class ProcedimientosDAO {
     }
 
     private int insertarDocumento(Connection conexion, int tipo, int persona, int empleado,
-                                  int metodoPago, String numeroExterno) throws SQLException {
-        return insertarDocumento(conexion, tipo, persona, empleado, metodoPago,
-                numeroExterno, null);
-    }
-
-    private int insertarDocumento(Connection conexion, int tipo, int persona, int empleado,
                                   int metodoPago, String numeroExterno, String observaciones) throws SQLException {
+        int siguienteConsecutivo = obtenerSiguienteConsecutivo(conexion, tipo);
+
         String sql = "INSERT INTO documento "
-                + "(id_tipo_documento, id_persona, id_empleado, id_metodo_pago, "
+                + "(id_tipo_documento, numero_comprobante, id_persona, id_empleado, id_metodo_pago, "
                 + "numero_doc_externo, observaciones, estado) "
-                + "VALUES (?, ?, ?, ?, ?, ?, 'PENDIENTE')";
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDIENTE')";
         try (PreparedStatement ps = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, tipo);
-            ps.setInt(2, persona);
-            setNullableInt(ps, 3, empleado);
-            setNullableInt(ps, 4, metodoPago);
-            ps.setString(5, numeroExterno);
-            ps.setString(6, observaciones);
+            ps.setInt(2, siguienteConsecutivo);
+            setNullableInt(ps, 3, persona);
+            setNullableInt(ps, 4, empleado);
+            setNullableInt(ps, 5, metodoPago);
+            ps.setString(6, numeroExterno);
+            ps.setString(7, observaciones);
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {
@@ -280,64 +316,100 @@ public class ProcedimientosDAO {
         throw new SQLException("PostgreSQL no devolvió el ID del documento.");
     }
 
-    private double insertarMovimientosYActualizarStock(Connection conexion, int idDocumento,
-                                                       int idEmpleado, List<LineaProducto> lineas, boolean entrada) throws SQLException {
+    private int obtenerSiguienteConsecutivo(Connection conexion, int idTipoDocumento) throws SQLException {
+        String sql = "SELECT COALESCE(MAX(numero_comprobante), 0) + 1 FROM documento WHERE id_tipo_documento = ?";
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idTipoDocumento);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 1;
+            }
+        }
+    }
+
+    private double insertarMovimientos(Connection conexion, int idDocumento, int idEmpleado,
+                                       List<LineaProducto> lineas, Map<Integer, Double> costos) throws SQLException {
         String sqlMovimiento = "INSERT INTO movimiento_inventario "
-                + "(id_documento, id_producto, id_empleado, cantidad, precio_unitario) "
-                + "VALUES (?, ?, ?, ?, ?)";
-        String sqlStock = "UPDATE producto SET stock_actual = stock_actual + ? WHERE id_producto = ?";
-        double total = 0;
-        try (PreparedStatement movimiento = conexion.prepareStatement(sqlMovimiento);
-             PreparedStatement stock = conexion.prepareStatement(sqlStock)) {
+                + "(id_documento, id_producto, id_empleado, cantidad, costo_unitario, precio_unitario) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
+        double subtotal = 0;
+        try (PreparedStatement movimiento = conexion.prepareStatement(sqlMovimiento)) {
             for (LineaProducto linea : lineas) {
                 movimiento.setInt(1, idDocumento);
                 movimiento.setInt(2, linea.id);
                 setNullableInt(movimiento, 3, idEmpleado);
                 movimiento.setInt(4, linea.cantidad);
-                movimiento.setDouble(5, linea.precio);
+                movimiento.setDouble(5, costos.getOrDefault(linea.id, 0.0));
+                movimiento.setDouble(6, linea.precio);
                 movimiento.executeUpdate();
 
-                stock.setInt(1, entrada ? linea.cantidad : -linea.cantidad);
-                stock.setInt(2, linea.id);
-                if (stock.executeUpdate() == 0) {
-                    throw new SQLException("Producto inexistente: " + linea.id);
-                }
-                total += linea.cantidad * linea.precio;
+                subtotal += linea.cantidad * linea.precio;
             }
         }
-        return total;
+        return subtotal;
     }
 
-    private void actualizarTotales(Connection conexion, int idDocumento, double total)
+    private void actualizarTotales(Connection conexion, int idDocumento,
+                                   double subtotal, double descuento, double iva, double total)
             throws SQLException {
         try (PreparedStatement ps = conexion.prepareStatement(
-                "UPDATE documento SET subtotal = ?, total = ?, estado = 'COMPLETADA' "
+                "UPDATE documento SET subtotal = ?, descuento = ?, iva = ?, total = ?, estado = 'COMPLETADA' "
                 + "WHERE id_documento = ?")) {
-            ps.setDouble(1, total);
-            ps.setDouble(2, total);
-            ps.setInt(3, idDocumento);
+            ps.setDouble(1, subtotal);
+            ps.setDouble(2, descuento);
+            ps.setDouble(3, iva);
+            ps.setDouble(4, total);
+            ps.setInt(5, idDocumento);
             ps.executeUpdate();
         }
     }
 
-    private void validarStock(Connection conexion, List<LineaProducto> lineas) throws SQLException {
+    private Map<Integer, Double> validarStockYCostos(Connection conexion, List<LineaProducto> lineas) throws SQLException {
+        Map<Integer, Double> costos = new HashMap<>();
         for (LineaProducto linea : lineas) {
-            if (obtenerStockBloqueado(conexion, linea.id) < linea.cantidad) {
+            ProductoInfo info = obtenerProductoBloqueado(conexion, linea.id);
+            if (!info.activo) {
+                throw new IllegalArgumentException("El producto id=" + linea.id + " está inactivo.");
+            }
+            if (info.stock < linea.cantidad) {
                 throw new IllegalArgumentException(
-                        "Stock insuficiente para el producto id=" + linea.id);
+                        "Stock insuficiente para el producto id=" + linea.id + ". Disponible: " + info.stock);
+            }
+            costos.put(linea.id, info.precioCompra);
+        }
+        return costos;
+    }
+
+    private void validarProveedorActivo(Connection conexion, int idProveedor) throws SQLException {
+        String sql = "SELECT 1 FROM persona p JOIN proveedor pr ON p.id_persona = pr.id_persona "
+                + "WHERE p.id_persona = ? AND p.tipo = 'PROVEEDOR' AND p.activo = TRUE";
+        try (PreparedStatement ps = conexion.prepareStatement(sql)) {
+            ps.setInt(1, idProveedor);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IllegalArgumentException("El ID seleccionado no corresponde a un proveedor activo.");
+                }
             }
         }
     }
 
-    private int obtenerStockBloqueado(Connection conexion, int idProducto) throws SQLException {
+    private ProductoInfo obtenerProductoBloqueado(Connection conexion, int idProducto) throws SQLException {
         try (PreparedStatement ps = conexion.prepareStatement(
-                "SELECT stock_actual FROM producto WHERE id_producto = ? FOR UPDATE")) {
+                "SELECT stock_actual, precio_compra, activo FROM producto WHERE id_producto = ? FOR UPDATE")) {
             ps.setInt(1, idProducto);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
                     throw new SQLException("Producto inexistente: " + idProducto);
                 }
-                return rs.getInt(1);
+                return new ProductoInfo(rs.getInt("stock_actual"), rs.getDouble("precio_compra"), rs.getBoolean("activo"));
+            }
+        }
+    }
+
+    private double obtenerParametro(Connection conexion, String clave, double defecto) throws SQLException {
+        try (PreparedStatement ps = conexion.prepareStatement("SELECT valor FROM parametro WHERE clave = ?")) {
+            ps.setString(1, clave);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getDouble(1) : defecto;
             }
         }
     }
@@ -393,7 +465,6 @@ public class ProcedimientosDAO {
         }
     }
 
-    private record LineaProducto(int id, int cantidad, double precio) {
-    }
-
+    private record LineaProducto(int id, int cantidad, double precio) {}
+    private record ProductoInfo(int stock, double precioCompra, boolean activo) {}
 }
