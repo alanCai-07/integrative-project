@@ -530,8 +530,9 @@ public class CotizacionView {
             descuento = 0;
         }
         try {
-            CotizacionPdfGenerator.generar(destino.toPath(), clienteSeleccionado,
-                    itemsCotizacion, descuento, txtObservaciones.getText());
+            CotizacionPdfGenerator.generar(destino.toPath(), 0, clienteSeleccionado,
+                    itemsCotizacion, LocalDate.now().plusDays(15), descuento,
+                    txtObservaciones.getText());
             info("Cotización PDF generada correctamente en:\n" + destino.getAbsolutePath());
         } catch (IOException | RuntimeException e) {
             String detalle = e.getMessage() == null || e.getMessage().isBlank()

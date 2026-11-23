@@ -5,9 +5,34 @@
             "type": "java",
             "name": "Ejecutar TechZone",
             "request": "launch",
-            "noDebug": true,
+            "cwd": "${workspaceFolder}",
             "mainClass": "Proyecto.MainGUI",
-            "projectName": "proyecto-integrador-pii"
+            "projectName": "proyecto-integrador-pii",
+            "javaExec": "C:\\Program Files\\Java\\jdk-21.0.10\\bin\\java.exe",
+            "preLaunchTask": "Compilar TechZone (Maven)",
+            "modulePaths": [
+                "$Auto",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-base/23.0.2/javafx-base-23.0.2.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-base/23.0.2/javafx-base-23.0.2-win.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-controls/23.0.2/javafx-controls-23.0.2.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-controls/23.0.2/javafx-controls-23.0.2-win.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-fxml/23.0.2/javafx-fxml-23.0.2-win.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-graphics/23.0.2/javafx-graphics-23.0.2.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-graphics/23.0.2/javafx-graphics-23.0.2-win.jar",
+                "${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-swing/23.0.2/javafx-swing-23.0.2-win.jar"
+            ],
+            "classPaths": [
+                "$Auto",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-base/23.0.2/javafx-base-23.0.2.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-base/23.0.2/javafx-base-23.0.2-win.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-controls/23.0.2/javafx-controls-23.0.2.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-controls/23.0.2/javafx-controls-23.0.2-win.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-fxml/23.0.2/javafx-fxml-23.0.2-win.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-graphics/23.0.2/javafx-graphics-23.0.2.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-graphics/23.0.2/javafx-graphics-23.0.2-win.jar",
+                "!${env:USERPROFILE}/.m2/repository/org/openjfx/javafx-swing/23.0.2/javafx-swing-23.0.2-win.jar"
+            ],
+            "vmArgs": "--enable-native-access=ALL-UNNAMED --add-modules javafx.base,javafx.controls,javafx.fxml,javafx.graphics,javafx.swing"
         }
     ]
 }

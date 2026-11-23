@@ -15,21 +15,14 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Operaciones transaccionales de inventario para PostgreSQL/Neon.
- *
- * Mantiene el contrato que consumen los servicios, pero ejecuta las
- * operaciones directamente con JDBC en lugar de usar procedimientos MySQL
- * con parámetros OUT.
- */
 public class ProcedimientosDAO {
 
     private static final Pattern PRODUCTO_JSON = Pattern.compile(
-            "\\\"id\\\"\\s*:\\s*(\\d+)\\s*,\\s*\\\"qty\\\"\\s*:\\s*(\\d+)"
-                    + "\\s*,\\s*\\\"precio\\\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)");
+            "\"id\"\\s*:\\s*(\\d+)\\s*,\\s*\"qty\"\\s*:\\s*(\\d+)"
+            + "\\s*,\\s*\"precio\"\\s*:\\s*([0-9]+(?:\\.[0-9]+)?)");
 
     public Map<String, Object> registrarVenta(int idCliente, int idEmpleado,
-            int idMetodoPago, String productosJson) {
+                                              int idMetodoPago, String productosJson) {
         Map<String, Object> resultado = new HashMap<>();
 
         try (Connection conexion = conexionBD.obtenerConexion()) {
@@ -62,7 +55,7 @@ public class ProcedimientosDAO {
     }
 
     public Map<String, Object> registrarCompra(int idProveedor, int idEmpleado,
-            String nroFacturaExt, String productosJson) {
+                                               String nroFacturaExt, String productosJson) {
         Map<String, Object> resultado = new HashMap<>();
 
         try (Connection conexion = conexionBD.obtenerConexion()) {
@@ -93,7 +86,7 @@ public class ProcedimientosDAO {
     }
 
     public Map<String, Object> ajustarInventario(int idTipoDoc, int idEmpleado,
-            int idProducto, int cantidad, String observacion) {
+                                                 int idProducto, int cantidad, String observacion) {
         Map<String, Object> resultado = new HashMap<>();
 
         try (Connection conexion = conexionBD.obtenerConexion()) {
@@ -111,8 +104,8 @@ public class ProcedimientosDAO {
                         + "(id_documento, id_producto, id_empleado, cantidad, precio_unitario) "
                         + "VALUES (?, ?, ?, ?, 0)";
                 try (PreparedStatement ps = conexion.prepareStatement(sqlMovimiento);
-                        PreparedStatement psStock = conexion.prepareStatement(
-                                "UPDATE producto SET stock_actual = stock_actual + ? WHERE id_producto = ?")) {
+                     PreparedStatement psStock = conexion.prepareStatement(
+                             "UPDATE producto SET stock_actual = stock_actual + ? WHERE id_producto = ?")) {
                     ps.setInt(1, idDocumento);
                     ps.setInt(2, idProducto);
                     setNullableInt(ps, 3, idEmpleado);
@@ -153,8 +146,8 @@ public class ProcedimientosDAO {
         List<Map<String, Object>> lista = new ArrayList<>();
 
         try (Connection conexion = conexionBD.obtenerConexion();
-                Statement statement = conexion.createStatement();
-                ResultSet rs = statement.executeQuery(sql)) {
+             Statement statement = conexion.createStatement();
+             ResultSet rs = statement.executeQuery(sql)) {
             while (rs.next()) {
                 Map<String, Object> fila = new HashMap<>();
                 fila.put("id_producto", rs.getInt("id_producto"));
@@ -172,7 +165,7 @@ public class ProcedimientosDAO {
     }
 
     public List<Map<String, Object>> reporteMovimientos(Integer idProducto,
-            String fechaDesde, String fechaHasta) {
+                                                        String fechaDesde, String fechaHasta) {
         String sql = "SELECT m.id_movimiento, m.fecha_movimiento, td.descripcion AS tipo_documento, "
                 + "td.efecto_en_inventario, d.numero_doc_externo, p.nombre AS producto, "
                 + "m.cantidad, m.precio_unitario, m.subtotal_linea, "
@@ -191,7 +184,7 @@ public class ProcedimientosDAO {
         List<Map<String, Object>> lista = new ArrayList<>();
 
         try (Connection conexion = conexionBD.obtenerConexion();
-                PreparedStatement ps = conexion.prepareStatement(sql)) {
+             PreparedStatement ps = conexion.prepareStatement(sql)) {
             if (idProducto == null) {
                 ps.setNull(1, Types.INTEGER);
                 ps.setNull(2, Types.INTEGER);
@@ -237,7 +230,7 @@ public class ProcedimientosDAO {
         List<Map<String, Object>> lista = new ArrayList<>();
 
         try (Connection conexion = conexionBD.obtenerConexion();
-                PreparedStatement ps = conexion.prepareStatement(sql)) {
+             PreparedStatement ps = conexion.prepareStatement(sql)) {
             ps.setInt(1, idCliente);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -259,13 +252,13 @@ public class ProcedimientosDAO {
     }
 
     private int insertarDocumento(Connection conexion, int tipo, int persona, int empleado,
-            int metodoPago, String numeroExterno) throws SQLException {
+                                  int metodoPago, String numeroExterno) throws SQLException {
         return insertarDocumento(conexion, tipo, persona, empleado, metodoPago,
                 numeroExterno, null);
     }
 
     private int insertarDocumento(Connection conexion, int tipo, int persona, int empleado,
-            int metodoPago, String numeroExterno, String observaciones) throws SQLException {
+                                  int metodoPago, String numeroExterno, String observaciones) throws SQLException {
         String sql = "INSERT INTO documento "
                 + "(id_tipo_documento, id_persona, id_empleado, id_metodo_pago, "
                 + "numero_doc_externo, observaciones, estado) "
@@ -288,14 +281,14 @@ public class ProcedimientosDAO {
     }
 
     private double insertarMovimientosYActualizarStock(Connection conexion, int idDocumento,
-            int idEmpleado, List<LineaProducto> lineas, boolean entrada) throws SQLException {
+                                                       int idEmpleado, List<LineaProducto> lineas, boolean entrada) throws SQLException {
         String sqlMovimiento = "INSERT INTO movimiento_inventario "
                 + "(id_documento, id_producto, id_empleado, cantidad, precio_unitario) "
                 + "VALUES (?, ?, ?, ?, ?)";
         String sqlStock = "UPDATE producto SET stock_actual = stock_actual + ? WHERE id_producto = ?";
         double total = 0;
         try (PreparedStatement movimiento = conexion.prepareStatement(sqlMovimiento);
-                PreparedStatement stock = conexion.prepareStatement(sqlStock)) {
+             PreparedStatement stock = conexion.prepareStatement(sqlStock)) {
             for (LineaProducto linea : lineas) {
                 movimiento.setInt(1, idDocumento);
                 movimiento.setInt(2, linea.id);
@@ -319,7 +312,7 @@ public class ProcedimientosDAO {
             throws SQLException {
         try (PreparedStatement ps = conexion.prepareStatement(
                 "UPDATE documento SET subtotal = ?, total = ?, estado = 'COMPLETADA' "
-                        + "WHERE id_documento = ?")) {
+                + "WHERE id_documento = ?")) {
             ps.setDouble(1, total);
             ps.setDouble(2, total);
             ps.setInt(3, idDocumento);

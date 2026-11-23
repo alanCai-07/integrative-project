@@ -7,40 +7,15 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * ItemCarritoDAO — CORRECCIONES APLICADAS:
- *
- * BUG CRÍTICO en agregarItemAlCarrito():
- *   CarritoServices llama: itemCarritoDAO.agregarItemAlCarrito(carrito.getCliente().getId(), ...)
- *   es decir, pasa el ID del CLIENTE, no el ID del carrito.
- *   Pero el INSERT usaba ese valor como id_carrito directamente.
- *   Resultado: INSERT fallaba con FK violation porque no existe carrito con id = id_cliente.
- *
- *   FIX: el método ahora busca el id_carrito real a partir del id_cliente
- *   antes de hacer el INSERT. Si no existe carrito lo crea.
- *
- * BUG en obtenerItemsDelCarrito():
- *   Mismo problema — recibía id_cliente pero buscaba en carrito.id_carrito.
- *   FIX: hace JOIN para resolver id_cliente → id_carrito.
- *
- * BUG en limpiarCarrito():
- *   Mismo problema.
- *   FIX: resuelve id_carrito desde id_cliente antes del DELETE.
- */
 public class ItemCarritoDAO {
 
-    // ── Agregar item al carrito ────────────────────────────────────────────────
-    // PARÁMETRO: idCliente (no idCarrito — CarritoServices pasa cliente.getId())
     public boolean agregarItemAlCarrito(int idCliente, int idProducto, int cantidad) {
-
-        // 1. Resolver el id_carrito real desde el id_cliente
         int idCarrito = obtenerOCrearCarritoPorCliente(idCliente);
         if (idCarrito == -1) {
             System.err.println("ItemCarritoDAO: no se pudo obtener/crear carrito para cliente " + idCliente);
             return false;
         }
 
-        // 2. Si el producto ya existe en el carrito, actualizar cantidad
         String sqlCheck = "SELECT id_item, cantidad FROM item_carrito "
                 + "WHERE id_carrito = ? AND id_producto = ?";
 
@@ -52,10 +27,9 @@ public class ItemCarritoDAO {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                // Ya existe: suma la cantidad
-                int idItem       = rs.getInt("id_item");
-                int cantActual   = rs.getInt("cantidad");
-                int cantNueva    = cantActual + cantidad;
+                int idItem = rs.getInt("id_item");
+                int cantActual = rs.getInt("cantidad");
+                int cantNueva = cantActual + cantidad;
                 return actualizarCantidadItem(idItem, cantNueva);
             }
         } catch (SQLException e) {
@@ -63,7 +37,6 @@ public class ItemCarritoDAO {
             return false;
         }
 
-        // 3. Producto nuevo: INSERT
         String sqlInsert = "INSERT INTO item_carrito (id_carrito, id_producto, cantidad) "
                 + "VALUES (?, ?, ?)";
 
@@ -81,16 +54,13 @@ public class ItemCarritoDAO {
         return false;
     }
 
-    // ── Obtener items del carrito ──────────────────────────────────────────────
-    // PARÁMETRO: idCliente (CarritoServices pasa cliente.getId())
     public List<ItemCarrito> obtenerItemsDelCarrito(int idCliente) {
-        // Resuelve id_carrito desde id_cliente mediante JOIN
         String sql = "SELECT ic.id_item, ic.cantidad, "
                 + "p.id_producto, p.nombre, p.descripcion, p.precio_compra, "
                 + "p.precio_venta, p.stock_actual, p.stock_minimo, p.activo, p.id_categoria "
                 + "FROM item_carrito ic "
-                + "JOIN carrito ca  ON ic.id_carrito = ca.id_carrito "
-                + "JOIN producto p  ON ic.id_producto = p.id_producto "
+                + "JOIN carrito ca ON ic.id_carrito = ca.id_carrito "
+                + "JOIN producto p ON ic.id_producto = p.id_producto "
                 + "WHERE ca.id_cliente = ? "
                 + "ORDER BY ic.id_item";
 
@@ -102,7 +72,9 @@ public class ItemCarritoDAO {
             pstmt.setInt(1, idCliente);
             ResultSet rs = pstmt.executeQuery();
 
-            while (rs.next()) items.add(mapearItemCarrito(rs));
+            while (rs.next()) {
+                items.add(mapearItemCarrito(rs));
+            }
 
         } catch (SQLException e) {
             System.err.println("Error al obtener items del carrito: " + e.getMessage());
@@ -110,7 +82,6 @@ public class ItemCarritoDAO {
         return items;
     }
 
-    // ── Actualizar cantidad ────────────────────────────────────────────────────
     public boolean actualizarCantidadItem(int idItem, int cantidad) {
         String sql = "UPDATE item_carrito SET cantidad = ? WHERE id_item = ?";
 
@@ -127,7 +98,6 @@ public class ItemCarritoDAO {
         return false;
     }
 
-    // ── Eliminar item ──────────────────────────────────────────────────────────
     public boolean eliminarItemDelCarrito(int idItem) {
         String sql = "DELETE FROM item_carrito WHERE id_item = ?";
 
@@ -143,10 +113,7 @@ public class ItemCarritoDAO {
         return false;
     }
 
-    // ── Limpiar carrito ───────────────────────────────────────────────────────
-    // PARÁMETRO: idCliente (CarritoServices pasa cliente.getId())
     public boolean limpiarCarrito(int idCliente) {
-        // Resuelve id_carrito desde id_cliente
         String sql = "DELETE FROM item_carrito "
                 + "WHERE id_carrito IN (SELECT id_carrito FROM carrito WHERE id_cliente = ?)";
 
@@ -154,7 +121,7 @@ public class ItemCarritoDAO {
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {
 
             pstmt.setInt(1, idCliente);
-            pstmt.executeUpdate(); // puede ser 0 filas si el carrito estaba vacío
+            pstmt.executeUpdate();
             return true;
 
         } catch (SQLException e) {
@@ -163,14 +130,7 @@ public class ItemCarritoDAO {
         return false;
     }
 
-    // ── Helpers internos ──────────────────────────────────────────────────────
-
-    /**
-     * Busca el carrito activo del cliente. Si no existe, lo crea.
-     * Devuelve el id_carrito o -1 si falla.
-     */
     private int obtenerOCrearCarritoPorCliente(int idCliente) {
-        // Buscar carrito existente (el más reciente)
         String sqlSelect = "SELECT id_carrito FROM carrito "
                 + "WHERE id_cliente = ? ORDER BY creado_en DESC LIMIT 1";
 
@@ -179,14 +139,15 @@ public class ItemCarritoDAO {
 
             ps.setInt(1, idCliente);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()) return rs.getInt("id_carrito");
+            if (rs.next()) {
+                return rs.getInt("id_carrito");
+            }
 
         } catch (SQLException e) {
             System.err.println("Error al buscar carrito: " + e.getMessage());
             return -1;
         }
 
-        // No existe → crear uno nuevo
         String sqlInsert = "INSERT INTO carrito (id_cliente, creado_en) VALUES (?, NOW())";
 
         try (Connection conexion = conexionBD.obtenerConexion();
@@ -196,7 +157,9 @@ public class ItemCarritoDAO {
             ps.setInt(1, idCliente);
             ps.executeUpdate();
             ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) return rs.getInt(1);
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
 
         } catch (SQLException e) {
             System.err.println("Error al crear carrito: " + e.getMessage());

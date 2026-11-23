@@ -1,6 +1,7 @@
 {
     "java.configuration.updateBuildConfiguration": "automatic",
     "java.compile.nullAnalysis.mode": "automatic",
+    "java.debug.settings.forceBuildBeforeLaunch": false,
     "maven.executable.preferMavenWrapper": false,
     "java.project.referencedLibraries": [
         "lib/**/*.jar"
