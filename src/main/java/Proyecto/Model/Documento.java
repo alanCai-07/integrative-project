@@ -4,211 +4,132 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Representa un comprobante comercial o documento de movimiento de inventario.
+ *
+ * @author Allan Matthew Caicedo Montaño
+ * @author German Astudillo Astudillo
+ */
 public class Documento {
-    // Atributos
+
     private int idDocumento;
+    private int idTipoDocumento;
     private TipoDocumento tipoDocumento;
-    private Persona persona; // Cliente o Proveedor
+    private int numeroComprobante;
+    private Integer idPersona;
+    private Persona persona;
+    private Integer idEmpleado;
     private Empleado empleado;
+    private Integer idMetodoPago;
+    private MetodoPago metodoPago;
+    private LocalDateTime fechaInicio;
     private LocalDateTime fechaDocumento;
     private String numeroDocExterno;
-    private int cantidad;
     private double subtotal;
     private double descuento;
+    private double iva;
     private double total;
+    private String estado;
     private String observaciones;
-    private List<ItemCarrito> detalles;
+    private List<MovimientoInventario> movimientos = new ArrayList<>();
 
-    // Constructor sin parámetros
     public Documento() {
-        this.detalles = new ArrayList<>();
-        this.fechaDocumento = LocalDateTime.now();
-        this.cantidad = 0;
-        this.subtotal = 0.0;
-        this.descuento = 0.0;
-        this.total = 0.0;
+        this.fechaInicio = LocalDateTime.now();
+        this.estado = "COMPLETADA";
     }
 
-    // Constructor con parámetros
-    public Documento(int idDocumento, TipoDocumento tipoDocumento, Persona persona, Empleado empleado,
-            LocalDateTime fechaDocumento, String numeroDocExterno) {
-        this.idDocumento = idDocumento;
-        this.tipoDocumento = tipoDocumento;
-        this.persona = persona;
-        this.empleado = empleado;
-        this.fechaDocumento = fechaDocumento;
-        this.numeroDocExterno = numeroDocExterno;
-        this.cantidad = 0;
-        this.subtotal = 0.0;
-        this.descuento = 0.0;
-        this.total = 0.0;
-        this.detalles = new ArrayList<>();
+    /**
+     * Regla de negocio: total = subtotal - descuento + iva.
+     */
+    public void recalcularTotal() {
+        this.total = Math.max(0, (this.subtotal - this.descuento) + this.iva);
     }
 
-    // Getters y Setters
-    public int getIdDocumento() {
-        return idDocumento;
-    }
+    public int getIdDocumento() { return idDocumento; }
+    public void setIdDocumento(int idDocumento) { this.idDocumento = idDocumento; }
 
-    public void setIdDocumento(int idDocumento) {
-        if (idDocumento < 0) {
-            throw new IllegalArgumentException("El ID no puede ser negativo");
-        }
-        this.idDocumento = idDocumento;
+    public int getIdTipoDocumento() {
+        return tipoDocumento != null ? tipoDocumento.getIdTipoDocumento() : idTipoDocumento;
     }
+    public void setIdTipoDocumento(int idTipoDocumento) { this.idTipoDocumento = idTipoDocumento; }
 
-    public TipoDocumento getTipoDocumento() {
-        return tipoDocumento;
-    }
-
+    public TipoDocumento getTipoDocumento() { return tipoDocumento; }
     public void setTipoDocumento(TipoDocumento tipoDocumento) {
-        if (tipoDocumento == null) {
-            throw new IllegalArgumentException("El tipo de documento no puede ser nulo");
-        }
         this.tipoDocumento = tipoDocumento;
+        if (tipoDocumento != null) {
+            this.idTipoDocumento = tipoDocumento.getIdTipoDocumento();
+        }
     }
 
-    public Persona getPersona() {
-        return persona;
-    }
+    public int getNumeroComprobante() { return numeroComprobante; }
+    public void setNumeroComprobante(int numeroComprobante) { this.numeroComprobante = numeroComprobante; }
 
+    public Integer getIdPersona() {
+        return persona != null ? persona.getId() : idPersona;
+    }
+    public void setIdPersona(Integer idPersona) { this.idPersona = idPersona; }
+
+    public Persona getPersona() { return persona; }
     public void setPersona(Persona persona) {
-        if (persona == null) {
-            throw new IllegalArgumentException("La persona no puede ser nula");
-        }
         this.persona = persona;
+        if (persona != null) {
+            this.idPersona = persona.getId();
+        }
     }
 
-    public Empleado getEmpleado() {
-        return empleado;
+    public Integer getIdEmpleado() {
+        return empleado != null ? empleado.getId() : idEmpleado;
     }
+    public void setIdEmpleado(Integer idEmpleado) { this.idEmpleado = idEmpleado; }
 
+    public Empleado getEmpleado() { return empleado; }
     public void setEmpleado(Empleado empleado) {
-        if (empleado == null) {
-            throw new IllegalArgumentException("El empleado no puede ser nulo");
-        }
         this.empleado = empleado;
-    }
-
-    public LocalDateTime getFechaDocumento() {
-        return fechaDocumento;
-    }
-
-    public void setFechaDocumento(LocalDateTime fechaDocumento) {
-        if (fechaDocumento == null) {
-            throw new IllegalArgumentException("La fecha no puede ser nula");
-        }
-        this.fechaDocumento = fechaDocumento;
-    }
-
-    public String getNumeroDocExterno() {
-        return numeroDocExterno;
-    }
-
-    public void setNumeroDocExterno(String numeroDocExterno) {
-        this.numeroDocExterno = numeroDocExterno;
-    }
-
-    public int getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(int cantidad) {
-        if (cantidad < 0) {
-            throw new IllegalArgumentException("La cantidad no puede ser negativa");
-        }
-        this.cantidad = cantidad;
-    }
-
-    public double getSubtotal() {
-        return subtotal;
-    }
-
-    public void setSubtotal(double subtotal) {
-        if (subtotal < 0) {
-            throw new IllegalArgumentException("El subtotal no puede ser negativo");
-        }
-        this.subtotal = subtotal;
-    }
-
-    public double getDescuento() {
-        return descuento;
-    }
-
-    public void setDescuento(double descuento) {
-        if (descuento < 0) {
-            throw new IllegalArgumentException("El descuento no puede ser negativo");
-        }
-        this.descuento = descuento;
-    }
-
-    public double getTotal() {
-        return total;
-    }
-
-    public void setTotal(double total) {
-        if (total < 0) {
-            throw new IllegalArgumentException("El total no puede ser negativo");
-        }
-        this.total = total;
-    }
-
-    public String getObservaciones() {
-        return observaciones;
-    }
-
-    public void setObservaciones(String observaciones) {
-        this.observaciones = observaciones;
-    }
-
-    public List<ItemCarrito> getDetalles() {
-        return detalles;
-    }
-
-    public void setDetalles(List<ItemCarrito> detalles) {
-        this.detalles = detalles != null ? detalles : new ArrayList<>();
-    }
-
-    // Métodos
-    // Agrega un item al documento
-
-    public void agregarDetalle(ItemCarrito item) {
-        if (item == null) {
-            throw new IllegalArgumentException("El ítem no puede ser nulo");
-        }
-        this.detalles.add(item);
-        recalcularTotal();
-    }
-
-    // Elimina un ítem del documento
-
-    public void eliminarDetalle(int idProducto) {
-        this.detalles.removeIf(item -> item.getProducto().getIdProducto() == idProducto);
-        recalcularTotal();
-    }
-
-    // Recalcula el total del documento basado en los detalles
-
-    private void recalcularTotal() {
-        this.total = 0.0;
-        for (ItemCarrito item : detalles) {
-            this.total += item.getSubtotal();
+        if (empleado != null) {
+            this.idEmpleado = empleado.getId();
         }
     }
 
-    // Verifica si el documento está vacío
+    public Integer getIdMetodoPago() {
+        return metodoPago != null ? metodoPago.getIdMetodoPago() : idMetodoPago;
+    }
+    public void setIdMetodoPago(Integer idMetodoPago) { this.idMetodoPago = idMetodoPago; }
 
-    public boolean estaVacio() {
-        return detalles.isEmpty();
+    public MetodoPago getMetodoPago() { return metodoPago; }
+    public void setMetodoPago(MetodoPago metodoPago) {
+        this.metodoPago = metodoPago;
+        if (metodoPago != null) {
+            this.idMetodoPago = metodoPago.getIdMetodoPago();
+        }
     }
 
-    @Override
-    public String toString() {
-        return String.format("ID: %d, Tipo Doc: %s, Persona: %s, Fecha: %s, Total: %.2f",
-                idDocumento,
-                tipoDocumento != null ? tipoDocumento.getDescripcion() : "N/A",
-                persona != null ? persona.getNombre() : "N/A",
-                fechaDocumento,
-                total);
-    }
+    public LocalDateTime getFechaInicio() { return fechaInicio; }
+    public void setFechaInicio(LocalDateTime fechaInicio) { this.fechaInicio = fechaInicio; }
+
+    public LocalDateTime getFechaDocumento() { return fechaDocumento; }
+    public void setFechaDocumento(LocalDateTime fechaDocumento) { this.fechaDocumento = fechaDocumento; }
+
+    public String getNumeroDocExterno() { return numeroDocExterno; }
+    public void setNumeroDocExterno(String numeroDocExterno) { this.numeroDocExterno = numeroDocExterno; }
+
+    public double getSubtotal() { return subtotal; }
+    public void setSubtotal(double subtotal) { this.subtotal = subtotal; }
+
+    public double getDescuento() { return descuento; }
+    public void setDescuento(double descuento) { this.descuento = descuento; }
+
+    public double getIva() { return iva; }
+    public void setIva(double iva) { this.iva = iva; }
+
+    public double getTotal() { return total; }
+    public void setTotal(double total) { this.total = total; }
+
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
+
+    public String getObservaciones() { return observaciones; }
+    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+
+    public List<MovimientoInventario> getMovimientos() { return movimientos; }
+    public void setMovimientos(List<MovimientoInventario> movimientos) { this.movimientos = movimientos; }
 }
