@@ -9,73 +9,30 @@ import java.util.Map;
 
 public class InventarioDAO {
 
-    /**
-     * Registra un movimiento de inventario.
-     *
-     * @param idDocumento ID del documento padre (venta, compra, ajuste)
-     * @param idProducto  ID del producto
-     * @param idEmpleado  ID del empleado responsable (0 o negativo = NULL)
-     * @param cantidad    Unidades del movimiento
-     * @param subtotal    Subtotal total de la linea (se usa para calcular
-     *                    precio_unitario)
-     */
+    //registrar movimiento de inventarios
+
     public boolean registrarMovimiento(int idDocumento, int idProducto,
             int idEmpleado, int cantidad, double subtotal) {
-        // subtotal_linea es columna GENERATED — se calcula automaticamente en MySQL
-        // precio_unitario = subtotal / cantidad para que MySQL calcule subtotal_linea
         double precioUnitario = (cantidad > 0) ? (subtotal / cantidad) : 0.0;
-
-        // CORRECCION: no se incluye subtotal_linea en el INSERT
-        String sql = "INSERT INTO movimiento_inventario " +
-                "(id_documento, id_producto, id_empleado, cantidad, precio_unitario, fecha_movimiento) " +
-                "VALUES (?, ?, ?, ?, ?, NOW())";
-
-        try (Connection conexion = conexionBD.obtenerConexion();
-                PreparedStatement pstmt = conexion.prepareStatement(sql)) {
-
-            pstmt.setInt(1, idDocumento);
-            pstmt.setInt(2, idProducto);
-
-            // CORRECCION: idEmpleado <= 0 se inserta como NULL
-            if (idEmpleado > 0) {
-                pstmt.setInt(3, idEmpleado);
-            } else {
-                pstmt.setNull(3, Types.INTEGER);
-            }
-
-            pstmt.setInt(4, cantidad);
-            pstmt.setDouble(5, precioUnitario);
-
-            return pstmt.executeUpdate() > 0;
-
-        } catch (SQLException e) {
-            System.err.println("InventarioDAO.registrarMovimiento: " + e.getMessage());
-        }
-        return false;
+        return registrarMovimientoConPrecio(idDocumento, idProducto, idEmpleado, cantidad, precioUnitario);
     }
 
     public boolean registrarMovimientoConPrecio(int idDocumento, int idProducto,
-            int idEmpleado, int cantidad,
-            double precioUnitario) {
+            int idEmpleado, int cantidad, double precioUnitario) {
         String sql = "INSERT INTO movimiento_inventario " +
-                "(id_documento, id_producto, id_empleado, cantidad, precio_unitario, fecha_movimiento) " +
-                "VALUES (?, ?, ?, ?, ?, NOW())";
+                "(id_documento, id_producto, cantidad, costo_unitario, precio_unitario, fecha_movimiento) " +
+                "VALUES (?, ?, ?, COALESCE((SELECT precio_compra FROM producto WHERE id_producto = ?), 0), ?, NOW())";
 
         try (Connection conexion = conexionBD.obtenerConexion();
-                PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
 
             pstmt.setInt(1, idDocumento);
             pstmt.setInt(2, idProducto);
-            if (idEmpleado > 0) {
-                pstmt.setInt(3, idEmpleado);
-            } else {
-                pstmt.setNull(3, Types.INTEGER);
-            }
-            pstmt.setInt(4, cantidad);
+            pstmt.setInt(3, cantidad);
+            pstmt.setInt(4, idProducto);
             pstmt.setDouble(5, precioUnitario);
 
             return pstmt.executeUpdate() > 0;
-
         } catch (SQLException e) {
             System.err.println("InventarioDAO.registrarMovimientoConPrecio: " + e.getMessage());
         }
