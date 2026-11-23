@@ -4,11 +4,13 @@ import Proyecto.dao.DocumentoDAO;
 import Proyecto.dao.InventarioDAO;
 import Proyecto.dao.ItemCarritoDAO;
 import Proyecto.dao.PersonaDAO;
+import Proyecto.dao.ProcedimientosDAO;
 import Proyecto.Model.ItemCarrito;
 import Proyecto.Model.Compra;
 import Proyecto.Model.DetalleCompra;
 import Proyecto.Model.Venta;
 import Proyecto.Model.Cliente;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,17 +19,22 @@ import java.util.stream.Collectors;
 
 public class DocumentoServices {
 
-    private DocumentoDAO   documentoDAO;
-    private InventarioDAO  inventarioDAO;
-    private ItemCarritoDAO itemCarritoDAO;
+    private final DocumentoDAO documentoDAO;
+    private final InventarioDAO inventarioDAO;
+    private final ItemCarritoDAO itemCarritoDAO;
+    private final ProcedimientosDAO procedimientosDAO;
 
     public DocumentoServices() {
-        this.documentoDAO   = new DocumentoDAO();
-        this.inventarioDAO  = new InventarioDAO();
+        this.documentoDAO = new DocumentoDAO();
+        this.inventarioDAO = new InventarioDAO();
         this.itemCarritoDAO = new ItemCarritoDAO();
+        this.procedimientosDAO = new ProcedimientosDAO();
     }
 
-    // ── Crear documento de venta ───────────────────────────────────────────────
+    /**
+     * Registra una venta a partir del carrito activo del cliente utilizando
+     * una única transacción atómica en ProcedimientosDAO (RF-07, RNF-07).
+     */
     public int crearDocumentoVenta(int idCliente, int idEmpleado,
                                    double descuento, String observaciones) {
         List<ItemCarrito> items = itemCarritoDAO.obtenerItemsDelCarrito(idCliente);
@@ -37,35 +44,28 @@ public class DocumentoServices {
             return -1;
         }
 
-        double subtotalTotal = 0;
-        for (ItemCarrito item : items) {
-            subtotalTotal += item.getSubtotal();
-        }
-        double total = subtotalTotal - descuento;
-        if (total < 0) total = 0;
-
-        int idDocumento = documentoDAO.crearDocumento(
-                1, idCliente, idEmpleado, descuento, total, observaciones);
-
-        if (idDocumento == -1) {
-            System.out.println("Error: No se pudo crear el documento de venta");
-            return -1;
-        }
-
-        for (ItemCarrito item : items) {
-            inventarioDAO.registrarMovimiento(
-                    idDocumento,
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < items.size(); i++) {
+            ItemCarrito item = items.get(i);
+            if (i > 0) json.append(",");
+            json.append(String.format(java.util.Locale.US,
+                    "{\"id\":%d,\"qty\":%d,\"precio\":%.2f}",
                     item.getProducto().getIdProducto(),
-                    idEmpleado,
                     item.getCantidad(),
-                    item.getSubtotal());
-            inventarioDAO.actualizarStock(
-                    item.getProducto().getIdProducto(),
-                    -item.getCantidad());
+                    item.getProducto().getPrecioVenta()));
         }
+        json.append("]");
 
-        itemCarritoDAO.limpiarCarrito(idCliente);
-        System.out.println("Venta registrada exitosamente. ID: " + idDocumento);
+        Map<String, Object> res = procedimientosDAO.registrarVenta(
+                idCliente, idEmpleado, 1, json.toString());
+
+        int idDocumento = ((Number) res.getOrDefault("idDocumento", -1)).intValue();
+        if (idDocumento != -1) {
+            itemCarritoDAO.limpiarCarrito(idCliente);
+            System.out.println("Venta registrada exitosamente. ID: " + idDocumento);
+        } else {
+            System.err.println(res.get("mensaje"));
+        }
         return idDocumento;
     }
 
@@ -73,18 +73,6 @@ public class DocumentoServices {
         return crearDocumentoVenta(idCliente, 0, 0, "Compra en linea");
     }
 
-    // ── Obtener todas las ventas CORREGIDO ────────────────────────────────────
-    /**
-     * CORRECCION PRINCIPAL:
-     * El metodo anterior llamaba a personaDAO.obtenerClientePorId() para cada
-     * documento. Si el id_persona del documento correspondia a un empleado o
-     * proveedor (no a un cliente), retornaba null y Venta.fromMap() fallaba,
-     * dejando la lista vacia.
-     *
-     * Solucion: construir un Cliente sintetico con los datos disponibles en el
-     * Map del documento cuando obtenerClientePorId() retorna null, evitando
-     * que un null rompa el stream y dejando la tabla en blanco.
-     */
     public List<Venta> obtenerTodasLasVentas() {
         PersonaDAO personaDAO = new PersonaDAO();
         List<Map<String, Object>> documentos = documentoDAO.obtenerTodosLosDocumentos();
@@ -92,16 +80,15 @@ public class DocumentoServices {
 
         for (Map<String, Object> doc : documentos) {
             try {
-                int     idPersona = ((Number) doc.get("idPersona")).intValue();
-                Cliente cliente   = personaDAO.obtenerClientePorId(idPersona);
+                Object idPersObj = doc.get("idPersona");
+                int idPersona = idPersObj != null ? ((Number) idPersObj).intValue() : 0;
+                Cliente cliente = idPersona > 0 ? personaDAO.obtenerClientePorId(idPersona) : null;
 
-                // Si no es un cliente registrado (p.ej. empleado que hizo la venta)
-                // se crea un objeto Cliente sintetico para que la fila se muestre igual
                 if (cliente == null) {
                     cliente = new Cliente();
                     cliente.setId(idPersona);
-                    cliente.setNombre("Persona");
-                    cliente.setApellido("ID-" + idPersona);
+                    cliente.setNombre(idPersona > 0 ? "Persona" : "Ajuste");
+                    cliente.setApellido(idPersona > 0 ? "ID-" + idPersona : "Interno");
                 }
 
                 ventas.add(Venta.fromMap(doc, cliente));
@@ -109,28 +96,19 @@ public class DocumentoServices {
                 System.err.println("Error al mapear venta: " + e.getMessage());
             }
         }
-
         return ventas;
     }
 
-    // ── Filtrar por rango de fechas CORREGIDO ─────────────────────────────────
-    /**
-     * CORRECCION: el metodo anterior filtraba sobre obtenerTodasLasVentas()
-     * que ya fallaba. Ahora filtra sobre la lista corregida.
-     * Ademas se agrego validacion de null en getFecha() para evitar NPE.
-     */
     public List<Venta> obtenerVentasPorRango(LocalDate fechaInicio, LocalDate fechaFin) {
         if (fechaInicio == null || fechaFin == null) {
             return obtenerTodasLasVentas();
         }
         return obtenerTodasLasVentas().stream()
                 .filter(v -> v.getFecha() != null
-                          && !v.getFecha().isBefore(fechaInicio)
-                          && !v.getFecha().isAfter(fechaFin))
+                        && !v.getFecha().isBefore(fechaInicio)
+                        && !v.getFecha().isAfter(fechaFin))
                 .collect(Collectors.toList());
     }
-
-    // ── Resto de metodos sin cambios ──────────────────────────────────────────
 
     public Map<String, Object> obtenerDocumento(int idDocumento) {
         return documentoDAO.obtenerDocumentoPorId(idDocumento);
@@ -153,15 +131,14 @@ public class DocumentoServices {
     }
 
     public String generarReporteVentasCliente(int idCliente) {
-        List<Map<String, Object>> documentos =
-                documentoDAO.obtenerDocumentosPorCliente(idCliente);
+        List<Map<String, Object>> documentos = documentoDAO.obtenerDocumentosPorCliente(idCliente);
         if (documentos.isEmpty()) return "No hay compras registradas para este cliente";
         StringBuilder sb = new StringBuilder();
         sb.append("REPORTE DE COMPRAS DEL CLIENTE\n================================\n\n");
         double total = 0;
         int count = 0;
         for (Map<String, Object> doc : documentos) {
-            double t = (double) doc.get("total");
+            double t = ((Number) doc.get("total")).doubleValue();
             total += t;
             count++;
             sb.append("Documento: ").append(doc.get("idDocumento")).append("\n")
@@ -180,16 +157,16 @@ public class DocumentoServices {
         double totalVentas = 0, totalDesc = 0;
         int cantidad = 0;
         for (Map<String, Object> doc : documentos) {
-            totalVentas += (double) doc.get("total");
-            totalDesc   += (double) doc.get("descuento");
+            totalVentas += ((Number) doc.get("total")).doubleValue();
+            totalDesc += ((Number) doc.get("descuento")).doubleValue();
             cantidad++;
         }
         sb.append("Total documentos: ").append(cantidad).append("\n");
-        sb.append("Total ventas: $").append(String.format("%.2f", totalVentas)).append("\n");
-        sb.append("Total descuentos: $").append(String.format("%.2f", totalDesc)).append("\n");
-        if (cantidad > 0)
-            sb.append("Promedio: $")
-              .append(String.format("%.2f", totalVentas / cantidad)).append("\n");
+        sb.append("Total ventas: $").append(String.format("%,.0f", totalVentas)).append("\n");
+        sb.append("Total descuentos: $").append(String.format("%,.0f", totalDesc)).append("\n");
+        if (cantidad > 0) {
+            sb.append("Promedio: $").append(String.format("%,.0f", totalVentas / cantidad)).append("\n");
+        }
         return sb.toString();
     }
 
@@ -199,12 +176,12 @@ public class DocumentoServices {
         StringBuilder sb = new StringBuilder();
         sb.append("FACTURA\n=======\n\nNumero: ").append(doc.get("idDocumento"))
           .append("\nFecha:  ").append(doc.get("fecha")).append("\n\n");
-        for (Map<String, Object> d : obtenerDetallesDocumento(idDocumento))
+        for (Map<String, Object> d : obtenerDetallesDocumento(idDocumento)) {
             sb.append("  Cantidad: ").append(d.get("cantidad"))
-              .append("\n  Subtotal: $")
-              .append(String.format("%.2f", d.get("subtotal"))).append("\n\n");
-        sb.append("Descuento: $").append(String.format("%.2f", doc.get("descuento")))
-          .append("\nTOTAL:     $").append(String.format("%.2f", doc.get("total"))).append("\n");
+              .append("\n  Subtotal: $").append(String.format("%,.0f", d.get("subtotal"))).append("\n\n");
+        }
+        sb.append("Descuento: $").append(String.format("%,.0f", doc.get("descuento")))
+          .append("\nTOTAL:     $").append(String.format("%,.0f", doc.get("total"))).append("\n");
         return sb.toString();
     }
 
