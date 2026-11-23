@@ -4,113 +4,106 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Representa el carrito de compras de un cliente registrado.
+ *
+ * @author Allan Matthew Caicedo Montaño
+ * @author German Astudillo Astudillo
+ */
 public class Carrito {
 
-    // Atributos
     private int idCarrito;
+    private int idCliente;
     private Cliente cliente;
-    private List<ItemCarrito> items;
+    private Integer idDocumento;
+    private String estado; // ABIERTO, CONVERTIDO, ABANDONADO
     private double total;
     private LocalDateTime creadoEn;
+    private List<ItemCarrito> items = new ArrayList<>();
 
-    // Constructor sin parámetros
     public Carrito() {
-        this.items = new ArrayList<>();
-        this.total = 0.0;
+        this.estado = "ABIERTO";
         this.creadoEn = LocalDateTime.now();
     }
 
-    // Constructor con parámetros
-    public Carrito(int idCarrito, Cliente cliente) {
+    public Carrito(int idCarrito, Cliente cliente, LocalDateTime creadoEn) {
         this.idCarrito = idCarrito;
         this.cliente = cliente;
-        this.items = new ArrayList<>();
-        this.total = 0.0;
-        this.creadoEn = LocalDateTime.now();
+        if (cliente != null) {
+            this.idCliente = cliente.getId();
+        }
+        this.creadoEn = creadoEn;
+        this.estado = "ABIERTO";
     }
 
-    // Métodos
-    public void agregarProducto(Producto producto, int cantidad) {
-        if (cantidad <= 0)
-            return;
+    public boolean estaVacio() {
+        return items == null || items.isEmpty();
+    }
 
+    public void agregarProducto(Producto producto, int cantidad) {
         for (ItemCarrito item : items) {
-            if (item.getProducto().getIdProducto() == producto.getIdProducto()) {
-                item.actualizarCantidad(item.getCantidad() + cantidad);
+            if (item.getProducto() != null && item.getProducto().getIdProducto() == producto.getIdProducto()) {
+                item.setCantidad(item.getCantidad() + cantidad);
                 recalcularTotal();
                 return;
             }
         }
-
-        items.add(new ItemCarrito(producto, cantidad));
+        ItemCarrito nuevo = new ItemCarrito();
+        nuevo.setProducto(producto);
+        nuevo.setCantidad(cantidad);
+        items.add(nuevo);
         recalcularTotal();
     }
 
     public void eliminarProducto(int idProducto) {
-        items.removeIf(item -> item.getProducto().getIdProducto() == idProducto);
+        items.removeIf(item -> item.getProducto() != null && item.getProducto().getIdProducto() == idProducto);
         recalcularTotal();
-    }
-
-    public boolean estaVacio() {
-        return items.isEmpty();
     }
 
     public void vaciar() {
         items.clear();
-        total = 0.0;
+        this.total = 0;
     }
 
     private void recalcularTotal() {
-        total = 0.0;
+        double suma = 0;
         for (ItemCarrito item : items) {
-            total += item.getSubtotal();
+            suma += item.getSubtotal();
         }
+        this.total = suma;
     }
 
-    public List<ItemCarrito> getItems() {
-        return items;
-    }
+    public int getIdCarrito() { return idCarrito; }
+    public void setIdCarrito(int idCarrito) { this.idCarrito = idCarrito; }
 
-    public double getTotal() {
-        return total;
+    public int getIdCliente() {
+        return cliente != null ? cliente.getId() : idCliente;
     }
+    public void setIdCliente(int idCliente) { this.idCliente = idCliente; }
 
-    public Cliente getCliente() {
-        return cliente;
-    }
-
+    public Cliente getCliente() { return cliente; }
     public void setCliente(Cliente cliente) {
-        if (cliente == null) {
-            throw new IllegalArgumentException("El cliente no puede ser nulo");
-        }
         this.cliente = cliente;
-    }
-
-    public int getIdCarrito() {
-        return idCarrito;
-    }
-
-    public void setIdCarrito(int idCarrito) {
-        if (idCarrito < 0) {
-            throw new IllegalArgumentException("El ID no puede ser negativo");
+        if (cliente != null) {
+            this.idCliente = cliente.getId();
         }
-        this.idCarrito = idCarrito;
     }
 
-    public LocalDateTime getCreadoEn() {
-        return creadoEn;
-    }
+    public Integer getIdDocumento() { return idDocumento; }
+    public void setIdDocumento(Integer idDocumento) { this.idDocumento = idDocumento; }
 
-    public void setCreadoEn(LocalDateTime creadoEn) {
-        if (creadoEn == null) {
-            throw new IllegalArgumentException("La fecha no puede ser nula");
-        }
-        this.creadoEn = creadoEn;
-    }
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
 
-    @Override
-    public String toString() {
-        return String.format("ID: %d, Cliente: %s, Total: %.2f, Creado: %s, Items: %d",
-                idCarrito, cliente != null ? cliente.getNombre() : "N/A", total, creadoEn, items.size());
+    public double getTotal() { return total; }
+    public void setTotal(double total) { this.total = total; }
+
+    public LocalDateTime getCreadoEn() { return creadoEn; }
+    public void setCreadoEn(LocalDateTime creadoEn) { this.creadoEn = creadoEn; }
+
+    public List<ItemCarrito> getItems() { return items; }
+    public void setItems(List<ItemCarrito> items) {
+        this.items = items;
+        recalcularTotal();
     }
 }
