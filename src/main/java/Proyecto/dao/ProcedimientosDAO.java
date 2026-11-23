@@ -395,4 +395,5 @@ public class ProcedimientosDAO {
 
     private record LineaProducto(int id, int cantidad, double precio) {
     }
+
 }

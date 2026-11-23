@@ -16,57 +16,50 @@ public class DocumentoDAO {
 
     public int crearDocumento(int idTipoDocumento, int idPersona, int idEmpleado,
             int idMetodoPago, double descuento, double total, String observaciones) {
+        return crearDocumentoConIva(idTipoDocumento, idPersona, idEmpleado,
+                idMetodoPago, total + descuento, descuento, 0.0, total, observaciones);
+    }
+
+    public int crearDocumentoConIva(int idTipoDocumento, int idPersona, int idEmpleado,
+            int idMetodoPago, double subtotal, double descuento, double iva,
+            double total, String observaciones) {
 
         String sql = "INSERT INTO documento " +
-                "(id_tipo_documento, id_persona, id_empleado, id_metodo_pago, " +
-                "descuento, subtotal, total, observaciones, fecha_documento, estado) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'COMPLETADA')";
+                "(id_tipo_documento, numero_comprobante, id_persona, id_empleado, id_metodo_pago, " +
+                "subtotal, descuento, iva, total, observaciones, fecha_documento, estado) " +
+                "VALUES (?, COALESCE((SELECT MAX(numero_comprobante) FROM documento WHERE id_tipo_documento = ?), 0) + 1, " +
+                "?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'COMPLETADA') RETURNING id_documento";
 
         try (Connection conexion = conexionBD.obtenerConexion();
-                PreparedStatement pstmt = conexion.prepareStatement(
-                        sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
 
             pstmt.setInt(1, idTipoDocumento);
-            pstmt.setInt(2, idPersona);
+            pstmt.setInt(2, idTipoDocumento);
+            pstmt.setInt(3, idPersona);
 
             if (idEmpleado > 0) {
-                pstmt.setInt(3, idEmpleado);
-            } else {
-                pstmt.setNull(3, Types.INTEGER);
-            }
-
-            if (idMetodoPago > 0) {
-                pstmt.setInt(4, idMetodoPago);
+                pstmt.setInt(4, idEmpleado);
             } else {
                 pstmt.setNull(4, Types.INTEGER);
             }
 
-            pstmt.setDouble(5, descuento);
-            // subtotal = total antes de IVA; se guarda igual al total si no hay
-            // separacion de IVA en la tabla (la columna subtotal existe en el schema)
-            pstmt.setDouble(6, total - descuento);
-            pstmt.setDouble(7, total);
-            pstmt.setString(8, observaciones);
-
-            int filasAfectadas = pstmt.executeUpdate();
-            if (filasAfectadas == 0) {
-                System.err.println("DocumentoDAO.crearDocumento: INSERT no afecto ninguna fila.");
-                return -1;
+            if (idMetodoPago > 0) {
+                pstmt.setInt(5, idMetodoPago);
+            } else {
+                pstmt.setNull(5, Types.INTEGER);
             }
 
-            long ultimoId = -1;
-            try {
-                try (ResultSet rs = pstmt.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        ultimoId = rs.getLong(1);
-                    }
+            pstmt.setDouble(6, subtotal);
+            pstmt.setDouble(7, descuento);
+            pstmt.setDouble(8, iva);
+            pstmt.setDouble(9, total);
+            pstmt.setString(10, observaciones);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
                 }
-            } catch (SQLException e) {
-                System.err.println("DocumentoDAO.crearDocumento.getGeneratedKeys: " + e.getMessage());
             }
-
-            return ultimoId != -1 ? (int) ultimoId : -1;
-
         } catch (SQLException e) {
             System.err.println("DocumentoDAO.crearDocumento: " + e.getMessage());
         }

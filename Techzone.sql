@@ -1,3 +1,5 @@
+-- Esquema PostgreSQL para Neon.
+
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE SCHEMA IF NOT EXISTS techzone;
@@ -319,6 +321,62 @@ INSERT INTO categoria (nombre, descripcion) VALUES
     ('Componentes', 'Hardware interno: RAM, discos, tarjetas'),
     ('Audio', 'Audifonos, parlantes y microfonos'),
     ('Redes', 'Routers, switches y cables de red');
+
+
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+INSERT INTO persona (tipo, nombres, apellidos, documento, telefono, email, direccion, activo) VALUES
+    ('EMPLEADO', 'Admin', 'TechZone', '10001', '3001110001', 'admin@techzone.co', 'Cali', TRUE),
+    ('EMPLEADO', 'Oscar', 'Soto', '10002', '3001110002', 'osoto@techzone.co', 'Cali', TRUE),
+    ('EMPLEADO', 'Leidy', 'Bustamante', '10003', '3001110003', 'lbustamante@techzone.co', 'Cali', TRUE),
+    ('EMPLEADO', 'Carlos', 'Martinez', '10004', '3001110004', 'cmartinez@techzone.co', 'Cali', TRUE),
+    ('EMPLEADO', 'Juan', 'Gaviria', '10005', '3001110005', 'jgaviria@techzone.co', 'Cali', TRUE),
+    ('EMPLEADO', 'Alan', 'Caicedo', '10006', '3001110006', 'acaicedo@techzone.co', 'Cali', TRUE),
+    ('CLIENTE', 'Laura', 'Gomez', '20001', '3102220001', 'laura@gmail.com', 'Cali', TRUE),
+    ('CLIENTE', 'Pedro', 'Ramirez', '20002', '3102220002', 'pedro@gmail.com', 'Cali', TRUE);
+
+INSERT INTO empleado (id_persona, tipo, id_cargo, contrasena_hash)
+SELECT p.id_persona, 'EMPLEADO',
+    CASE p.documento
+        WHEN '10001' THEN 1
+        WHEN '10002' THEN 2
+        WHEN '10003' THEN 3
+        WHEN '10004' THEN 4
+        WHEN '10005' THEN 5
+        ELSE 3
+    END,
+    crypt(
+        CASE p.documento
+            WHEN '10001' THEN 'admin123'
+            WHEN '10002' THEN 'comprador123'
+            WHEN '10003' THEN 'vendedor123'
+            WHEN '10004' THEN 'techzone'
+            WHEN '10005' THEN 'bodeguero123'
+            ELSE 'alan123'
+        END,
+        gen_salt('bf', 10)
+    )
+FROM persona p
+WHERE p.tipo = 'EMPLEADO';
+
+INSERT INTO cliente (id_persona, tipo, contrasena_hash)
+SELECT p.id_persona, 'CLIENTE',
+    crypt(
+        CASE p.documento
+            WHEN '20001' THEN 'laura123'
+            ELSE 'pedro123'
+        END,
+        gen_salt('bf', 10)
+    )
+FROM persona p
+WHERE p.tipo = 'CLIENTE';
+
+INSERT INTO producto (id_categoria, nombre, descripcion, precio_compra, precio_venta, stock_actual, stock_minimo) VALUES
+    (1, 'Laptop ASUS VivoBook 15', 'Intel Core i5, 8GB RAM, 512GB SSD', 2200000, 2800000, 10, 3),
+    (1, 'Laptop HP 15-dy', 'Intel Core i3, 8GB RAM, 256GB SSD', 1500000, 1900000, 8, 2),
+    (2, 'Samsung Galaxy A55', 'Pantalla 6.6, 128GB, camara triple', 1100000, 1400000, 15, 5),
+    (2, 'iPhone 15', 'Chip A16, 128GB', 4200000, 5100000, 6, 2),
+    (3, 'Mouse Logitech MX Master 3', 'Inalambrico y ergonomico', 180000, 250000, 30, 8);
 
 -- usuarios y contrasenas de prueba para la aplicacion Java, encriptadas con SHA-256:
 
