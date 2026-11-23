@@ -44,7 +44,6 @@ public class MenuPrincipalView {
     private Label lblDashVentas;
     private Label lblDashMonto;
 
-    // ── Constructores ──────────────────────────────────────────────────────────
     public MenuPrincipalView(Cliente cliente, Stage stage) {
         this.cliente = cliente;
         this.stage = stage;
@@ -65,13 +64,13 @@ public class MenuPrincipalView {
     }
 
     private String resolverRol(Cliente c) {
-        if (c == null)
+        if (c == null) {
             return "CLIENTE";
+        }
         String r = c.getRol();
         return (r != null && !r.isEmpty()) ? r.toUpperCase() : "CLIENTE";
     }
 
-    // ── Init ───────────────────────────────────────────────────────────────────
     private void initComponents() {
         stage.setTitle("TechZone - Sistema de Gestion");
         stage.setWidth(1280);
@@ -95,7 +94,6 @@ public class MenuPrincipalView {
         stage.show();
     }
 
-    // ── Barra superior ─────────────────────────────────────────────────────────
     private HBox crearBarraSuperior() {
         HBox topBar = new HBox();
         topBar.setAlignment(Pos.CENTER_LEFT);
@@ -147,30 +145,12 @@ public class MenuPrincipalView {
         };
     }
 
-    // ── Menu lateral CORREGIDO ─────────────────────────────────────────────────
-    /**
-     * CORRECCION DE ROLES:
-     *
-     * Seccion PRINCIPAL: todos los empleados y clientes ven el Catalogo.
-     * Solo empleados y admin ven Dashboard.
-     *
-     * Seccion VENTAS:
-     * - "Cotizaciones" -> Vendedor y Admin unicamente.
-     * - "Punto de Venta" -> Cajero y Admin unicamente.
-     * - "Registro Ventas" -> Cajero y Admin unicamente.
-     *
-     * Seccion MI CUENTA: clientes.
-     * Seccion INVENTARIO: bodeguero y admin.
-     * Seccion CATALOGO (Nuevo Producto): comprador y admin.
-     * Seccion ADMINISTRACION: admin.
-     */
     private VBox crearMenuLateral() {
         VBox menuPanel = new VBox(4);
         menuPanel.setPrefWidth(240);
         menuPanel.setPadding(new Insets(18, 10, 18, 10));
         menuPanel.getStyleClass().add("side-menu");
 
-        // PRINCIPAL
         if (esEmpleadoOAdmin()) {
             agregarSeccion(menuPanel, "PRINCIPAL",
                     List.of("Dashboard", "Catalogo"),
@@ -181,47 +161,38 @@ public class MenuPrincipalView {
                     List.of("productos"));
         }
 
-        // MI CUENTA (solo clientes)
         if (esCliente()) {
             agregarSeccion(menuPanel, "MI CUENTA",
                     List.of("Mi Carrito", "Mis Compras", "Mi Perfil"),
                     List.of("carrito", "compras", "perfil"));
         }
 
-        // VENTAS - Cotizaciones: solo Vendedor y Admin
-        if (esSoloVendedor()) {
+        if (esAdmin()) {
+            agregarSeccion(menuPanel, "VENTAS",
+                    List.of("Cotizaciones", "Punto de Venta", "Registro Ventas"),
+                    List.of("cotizaciones", "pos", "ventas"));
+        } else if (esSoloVendedor()) {
             agregarSeccion(menuPanel, "VENTAS",
                     List.of("Cotizaciones"),
                     List.of("cotizaciones"));
-        }
-
-        // VENTAS - Punto de Venta y Registro: solo Cajero y Admin
-        if (esCajeroOAdmin()) {
+        } else if (esSoloCajero()) {
             agregarSeccion(menuPanel, "VENTAS",
                     List.of("Punto de Venta", "Registro Ventas"),
                     List.of("pos", "ventas"));
         }
 
-        // Si es admin muestra toda la seccion ventas completa de una vez
-        // (la logica anterior ya lo maneja via esSoloVendedor y esCajeroOAdmin
-        // pero admin cumple ambas condiciones y mostraria dos secciones "VENTAS".
-        // Se resuelve con el metodo esAdmin() que consolida.)
-
-        // INVENTARIO
         if (esBodegueroOAdmin()) {
             agregarSeccion(menuPanel, "INVENTARIO",
                     List.of("Movimientos", "Gestion de Productos"),
                     List.of("inventario", "bodega_productos"));
         }
 
-        // CATALOGO - Nuevo Producto
         if (esCompradorOAdmin()) {
             agregarSeccion(menuPanel, "CATALOGO",
                     List.of("Nuevo Producto"),
                     List.of("nuevo_producto"));
         }
 
-        // ADMINISTRACION
         if (esAdmin()) {
             agregarSeccion(menuPanel, "ADMINISTRACION",
                     List.of("Panel Admin"),
@@ -239,8 +210,9 @@ public class MenuPrincipalView {
     private void agregarSeccion(VBox panel, String titulo,
             List<String> textos, List<String> acciones) {
         panel.getChildren().add(sectionLabel(titulo));
-        for (int i = 0; i < textos.size(); i++)
+        for (int i = 0; i < textos.size(); i++) {
             panel.getChildren().add(btnMenu(textos.get(i), acciones.get(i)));
+        }
     }
 
     private Label sectionLabel(String texto) {
@@ -266,14 +238,15 @@ public class MenuPrincipalView {
     }
 
     private void resaltarBoton(Button sel) {
-        if (btnActivo != null)
+        if (btnActivo != null) {
             estiloBtnNormal(btnActivo);
+        }
         btnActivo = sel;
-        if (!btnActivo.getStyleClass().contains("menu-button-active"))
+        if (!btnActivo.getStyleClass().contains("menu-button-active")) {
             btnActivo.getStyleClass().add("menu-button-active");
+        }
     }
 
-    // ── Navegacion ─────────────────────────────────────────────────────────────
     private void cambiarPanel(String accion) {
         contentPanel.getChildren().clear();
         switch (accion) {
@@ -293,7 +266,6 @@ public class MenuPrincipalView {
         }
     }
 
-    // ── Dashboard ──────────────────────────────────────────────────────────────
     private void mostrarDashboardAdmin() {
         if (esCliente()) {
             mostrarProductos();
@@ -351,39 +323,46 @@ public class MenuPrincipalView {
     private void cargarKpisAdmin() {
         try {
             int prods = productoServices.obtenerTodosLosProductos().size();
-            if (lblDashProductos != null)
+            if (lblDashProductos != null) {
                 lblDashProductos.setText(String.valueOf(prods));
+            }
         } catch (Exception e) {
-            if (lblDashProductos != null)
+            if (lblDashProductos != null) {
                 lblDashProductos.setText("-");
+            }
         }
         try {
             int bajo = inventarioServices.obtenerProductosConStockBajo().size();
             if (lblDashStockBajo != null) {
                 lblDashStockBajo.setText(String.valueOf(bajo));
-                if (bajo > 0)
+                if (bajo > 0) {
                     lblDashStockBajo.setTextFill(Color.web("#C83C3C"));
+                }
             }
         } catch (Exception e) {
-            if (lblDashStockBajo != null)
+            if (lblDashStockBajo != null) {
                 lblDashStockBajo.setText("-");
+            }
         }
         try {
             var ventas = documentoServices.obtenerTodasLasVentas();
-            if (lblDashVentas != null)
+            if (lblDashVentas != null) {
                 lblDashVentas.setText(String.valueOf(ventas.size()));
+            }
             double monto = ventas.stream().mapToDouble(v -> v.getTotal()).sum();
-            if (lblDashMonto != null)
+            if (lblDashMonto != null) {
                 lblDashMonto.setText(String.format("$%.0f", monto));
+            }
         } catch (Exception e) {
-            if (lblDashVentas != null)
+            if (lblDashVentas != null) {
                 lblDashVentas.setText("-");
-            if (lblDashMonto != null)
+            }
+            if (lblDashMonto != null) {
                 lblDashMonto.setText("-");
+            }
         }
     }
 
-    // ── Modulos ────────────────────────────────────────────────────────────────
     private void mostrarProductos() {
         try {
             ProductoView view = new ProductoView(cliente);
@@ -396,8 +375,9 @@ public class MenuPrincipalView {
     private void abrirFormularioProducto() {
         try {
             ProductoFormView form = new ProductoFormView(stage);
-            if (form.isGuardadoExitoso())
+            if (form.isGuardadoExitoso()) {
                 mostrarProductos();
+            }
         } catch (Exception e) {
             new Alert(Alert.AlertType.INFORMATION, "Formulario en desarrollo.", ButtonType.OK).showAndWait();
         }
@@ -510,7 +490,6 @@ public class MenuPrincipalView {
         });
     }
 
-    // ── Helpers UI ─────────────────────────────────────────────────────────────
     private VBox kpiCard(String titulo, Label lblValor, String color) {
         VBox card = new VBox(6);
         card.setAlignment(Pos.CENTER);
@@ -578,7 +557,6 @@ public class MenuPrincipalView {
         return box;
     }
 
-    // ── Verificadores de rol ───────────────────────────────────────
     private boolean esCliente() {
         return "CLIENTE".equals(rol);
     }
@@ -591,14 +569,12 @@ public class MenuPrincipalView {
         return !esCliente();
     }
 
-    /** Vendedor pero NO cajero y NO admin (para cotizaciones exclusivamente). */
     private boolean esSoloVendedor() {
-        return "VENDEDOR".equals(rol) || esAdmin();
+        return "VENDEDOR".equals(rol);
     }
 
-    /** Cajero o Admin (para Punto de Venta y Registro de Ventas). */
-    private boolean esCajeroOAdmin() {
-        return "CAJERO".equals(rol) || esAdmin();
+    private boolean esSoloCajero() {
+        return "CAJERO".equals(rol);
     }
 
     private boolean esCompradorOAdmin() {

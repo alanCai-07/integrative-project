@@ -50,7 +50,6 @@ public class LoginView extends Application {
         stage.setTitle("TechZone - Iniciar Sesión");
         stage.setResizable(false);
 
-        // ── Panel izquierdo (logo) ─────────────────────────────────────────
         VBox leftPanel = new VBox(20);
         leftPanel.setAlignment(Pos.CENTER);
         leftPanel.setPrefWidth(420);
@@ -71,7 +70,6 @@ public class LoginView extends Application {
             leftPanel.getChildren().addAll(lblNombre, lblSub);
         }
 
-        // ── Panel derecho (formulario) ─────────────────────────────────────
         GridPane rightPanel = new GridPane();
         rightPanel.setAlignment(Pos.CENTER);
         rightPanel.setHgap(10);
@@ -120,21 +118,18 @@ public class LoginView extends Application {
         GridPane.setHalignment(lblMensaje, javafx.geometry.HPos.CENTER);
         rightPanel.add(lblMensaje, 0, 3);
 
-        btnLogin    = crearBoton("INGRESAR",     "#00C8FF");
-        btnRegistro = crearBoton("REGISTRARSE",  "#1A8A2A"); // verde para distinguirlo
-        btnSalir    = crearBoton("SALIR",         "#C83C3C");
+        btnLogin = crearBoton("INGRESAR", "#00C8FF");
+        btnRegistro = crearBoton("REGISTRARSE", "#1A8A2A");
+        btnSalir = crearBoton("SALIR", "#C83C3C");
 
         HBox buttonBox = new HBox(12, btnLogin, btnRegistro, btnSalir);
         buttonBox.setAlignment(Pos.CENTER);
         GridPane.setColumnSpan(buttonBox, 2);
         rightPanel.add(buttonBox, 0, 4);
 
-        // ── Acciones ───────────────────────────────────────────────────────
         btnLogin.setOnAction(e -> autenticar());
         txtEmail.setOnAction(e -> autenticar());
         txtPassword.setOnAction(e -> autenticar());
-
-        // CORRECCIÓN: se instancia RegistroView que ya existe en el proyecto
         btnRegistro.setOnAction(e -> abrirRegistro());
 
         btnSalir.setOnAction(e -> {
@@ -151,9 +146,8 @@ public class LoginView extends Application {
         stage.show();
     }
 
-    // ── Autenticación ──────────────────────────────────────────────────────────
     private void autenticar() {
-        String email    = txtEmail.getText().trim();
+        String email = txtEmail.getText().trim();
         String password = txtPassword.getText();
 
         if (email.isEmpty() || password.isEmpty()) {
@@ -169,41 +163,52 @@ public class LoginView extends Application {
         btnLogin.setText("Verificando...");
         limpiarMensaje();
 
-        new Thread(() -> {
-            Cliente cliente = personaServices.autenticarCliente(email, password);
+        Thread authThread = new Thread(() -> {
+            try {
+                Cliente cliente = personaServices.autenticarCliente(email, password);
 
-            Platform.runLater(() -> {
-                btnLogin.setDisable(false);
-                btnLogin.setText("INGRESAR");
+                Platform.runLater(() -> {
+                    btnLogin.setDisable(false);
+                    btnLogin.setText("INGRESAR");
 
-                if (cliente != null) {
-                    mostrarMensajeExito("Bienvenido, " + cliente.getNombre() + "!");
-                    abrirMenuPrincipal(cliente);
-                } else {
-                    mostrarMensajeError("Correo o contraseña incorrectos.");
-                    txtPassword.clear();
-                    txtPassword.requestFocus();
-                }
-            });
-        }).start();
+                    if (cliente != null) {
+                        mostrarMensajeExito("Bienvenido, " + cliente.getNombre() + "!");
+                        abrirMenuPrincipal(cliente);
+                    } else {
+                        mostrarMensajeError("Correo o contraseña incorrectos.");
+                        txtPassword.clear();
+                        txtPassword.requestFocus();
+                    }
+                });
+            } catch (Throwable error) {
+                Throwable causa = (error.getCause() != null) ? error.getCause() : error;
+                String detalle = (causa.getMessage() != null && !causa.getMessage().isBlank())
+                        ? causa.getMessage()
+                        : "No se pudo conectar con la base de datos.";
+                Platform.runLater(() -> {
+                    btnLogin.setDisable(false);
+                    btnLogin.setText("INGRESAR");
+                    mostrarMensajeError("Error de conexión: " + detalle);
+                });
+            }
+        }, "techzone-auth");
+        authThread.setDaemon(true);
+        authThread.start();
     }
 
-    // ── CORRECCIÓN PRINCIPAL: abrirRegistro ahora usa RegistroView real ────────
     private void abrirRegistro() {
-        // RegistroView ya existe en el proyecto en Proyecto.View.Usuario.
-        // Se abre como ventana modal sobre el login.
         RegistroView registroView = new RegistroView(stage);
-        // Si el registro fue exitoso mostramos un mensaje de éxito en el login
         if (registroView.isRegistradoExitoso()) {
-            mostrarMensajeExito("¡Cuenta creada! Ya puedes iniciar sesión.");
+            mostrarMensajeExito("Cuenta creada. Ya puedes iniciar sesión.");
         }
     }
 
-    // ── Helpers UI ─────────────────────────────────────────────────────────────
     private ImageView cargarLogo() {
         try {
             java.io.InputStream stream = getClass().getResourceAsStream("/logo.jpg");
-            if (stream == null) stream = getClass().getResourceAsStream("logo.jpg");
+            if (stream == null) {
+                stream = getClass().getResourceAsStream("logo.jpg");
+            }
             if (stream != null) {
                 Image img = new Image(stream);
                 ImageView iv = new ImageView(img);
@@ -228,9 +233,9 @@ public class LoginView extends Application {
         btn.setStyle("-fx-background-color: " + colorHex + "; -fx-border-width: 0; -fx-cursor: hand;");
 
         String hoverColor = colorHex.equals("#00C8FF") ? "#009DBF"
-                          : colorHex.equals("#C83C3C")  ? "#A03030"
-                          : colorHex.equals("#1A8A2A")  ? "#126B20"
-                          : "#222232";
+                : colorHex.equals("#C83C3C") ? "#A03030"
+                : colorHex.equals("#1A8A2A") ? "#126B20"
+                : "#222232";
         btn.setOnMouseEntered(e -> btn.setStyle(
                 "-fx-background-color: " + hoverColor + "; -fx-border-width: 0; -fx-cursor: hand;"));
         btn.setOnMouseExited(e -> btn.setStyle(
@@ -240,12 +245,12 @@ public class LoginView extends Application {
 
     private void mostrarMensajeError(String msg) {
         lblMensaje.setTextFill(Color.web("#FF4444"));
-        lblMensaje.setText("⚠ " + msg);
+        lblMensaje.setText(msg);
     }
 
     private void mostrarMensajeExito(String msg) {
         lblMensaje.setTextFill(Color.web("#00C84B"));
-        lblMensaje.setText("✓ " + msg);
+        lblMensaje.setText(msg);
     }
 
     private void limpiarMensaje() {
@@ -258,15 +263,40 @@ public class LoginView extends Application {
         stage.close();
     }
 
-    public String getEmail()       { return txtEmail.getText().trim(); }
-    public String getPassword()    { return txtPassword.getText(); }
-    public Button getBtnLogin()    { return btnLogin; }
-    public Button getBtnRegistro() { return btnRegistro; }
-    public Button getBtnSalir()    { return btnSalir; }
+    public String getEmail() {
+        return txtEmail.getText().trim();
+    }
 
-    public void mostrarMensaje(String msg) { mostrarMensajeExito(msg); }
-    public void mostrarError(String msg)   { mostrarMensajeError(msg); }
-    public void limpiarCampos()            { txtEmail.clear(); txtPassword.clear(); }
+    public String getPassword() {
+        return txtPassword.getText();
+    }
 
-    public static void main(String[] args) { launch(args); }
+    public Button getBtnLogin() {
+        return btnLogin;
+    }
+
+    public Button getBtnRegistro() {
+        return btnRegistro;
+    }
+
+    public Button getBtnSalir() {
+        return btnSalir;
+    }
+
+    public void mostrarMensaje(String msg) {
+        mostrarMensajeExito(msg);
+    }
+
+    public void mostrarError(String msg) {
+        mostrarMensajeError(msg);
+    }
+
+    public void limpiarCampos() {
+        txtEmail.clear();
+        txtPassword.clear();
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
 }
