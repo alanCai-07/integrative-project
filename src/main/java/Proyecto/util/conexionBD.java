@@ -54,26 +54,24 @@ public final class conexionBD {
             return null;
         }
     }
-
-    private static HikariDataSource crearFuenteDatos() {
+        private static HikariDataSource crearFuenteDatos() {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(construirUrl());
         config.setUsername(obtenerPropiedadRequerida("db.usuario", "db.user"));
-        config.setPassword(obtenerPropiedadRequerida(
-                "db.contrasena", "db.password", "db.pass"));
+        config.setPassword(obtenerPropiedadRequerida("db.contrasena", "db.password", "db.pass"));
         config.setMaximumPoolSize(Integer.parseInt(obtenerPropiedad("db.conexiones_max", "10")));
         config.setMinimumIdle(Integer.parseInt(obtenerPropiedad("db.conexiones_min", "1")));
         config.setConnectionTimeout(Long.parseLong(obtenerPropiedad("db.timeout_conexion", "30")) * 1000L);
         config.setValidationTimeout(5000);
         config.setPoolName("TechZone-Neon");
-        config.setConnectionInitSql("SET search_path TO \"" + obtenerEsquema() + "\", public");
+        config.setConnectionInitSql("SET search_path TO " + obtenerEsquema().toLowerCase() + ", public");
         return new HikariDataSource(config);
     }
 
     private static String obtenerEsquema() {
-        String esquema = obtenerPropiedad("db.schema", "public");
-        if (!esquema.matches("[A-Za-z_][A-Za-z0-9_]*")) {
-            throw new IllegalStateException("Nombre de esquema inválido: " + esquema);
+        String esquema = obtenerPropiedad("db.schema", "techzone").toLowerCase();
+        if (!esquema.matches("[a-z_][a-z0-9_]*")) {
+            throw new IllegalStateException("Nombre de esquema invalido: " + esquema);
         }
         return esquema;
     }

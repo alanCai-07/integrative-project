@@ -110,7 +110,7 @@ public class PersonaServices {
                 nombre, apellido,
                 email.toLowerCase().trim(),
                 telefono, documento,
-                idCargo, passwordHash, salario);
+                idCargo, passwordHash);
     }
 
     /**
@@ -124,7 +124,7 @@ public class PersonaServices {
             System.out.println("Error: cargo no reconocido: " + cargo);
             return false;
         }
-        return personaDAO.actualizarEmpleado(idPersona, nombre, apellido, telefono, idCargo, salario, activo);
+        return personaDAO.actualizarEmpleado(idPersona, nombre, apellido, telefono, idCargo, activo);
     }
 
     public boolean crearProveedor(String empresa, String nit, String nombreContacto,
@@ -150,7 +150,7 @@ public class PersonaServices {
         }
         return personaDAO.actualizarProveedor(idPersona, empresa.trim(), nit.trim(),
                 nombreContacto.trim(), apellidosContacto == null ? "" : apellidosContacto.trim(),
-                email == null ? null : email.trim().toLowerCase(), telefono, direccion);
+                email == null ? null : email.trim().toLowerCase(), telefono, direccion, true);
     }
 
     private int resolverIdCargo(String cargo) {
