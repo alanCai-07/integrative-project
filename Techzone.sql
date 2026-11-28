@@ -329,14 +329,17 @@ INSERT INTO persona (id_persona, tipo, nombres, apellidos, documento, telefono, 
 (7, 'PROVEEDOR', 'Distribuidora', 'Andina Tech', '900123456', '6023334455', 'ventas@andinatech.co', 'Bogotá', TRUE);
 
 INSERT INTO empleado (id_persona, id_cargo, contrasena_hash) VALUES
-(1, 1, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-(2, 2, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-(3, 3, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-(4, 4, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy'),
-(5, 5, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+(1, 1, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW'),
+(2, 2, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW'),
+(3, 3, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW'),
+(4, 4, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW'),
+(5, 5, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW');
+(3, 3, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW'),
+(4, 4, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW'),
+(5, 5, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW');
 
 INSERT INTO cliente (id_persona, contrasena_hash) VALUES
-(6, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+(6, '$2a$10$AhUfZt2NsLLpAxKO7yffuejNB3oNTuIKA.RD.L1CJ7fhXis.RtbBW');
 
 INSERT INTO proveedor (id_persona, nombre_empresa, nit) VALUES
 (7, 'Distribuidora Andina Tech S.A.S.', '900123456-1');
