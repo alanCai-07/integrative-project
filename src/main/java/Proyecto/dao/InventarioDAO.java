@@ -134,16 +134,7 @@ public class InventarioDAO {
         }
         return 0;
     }
-
-    /**
-     * Método puente de compatibilidad: el stock en PostgreSQL ya se actualiza
-     * automáticamente mediante el trigger trg_movimiento_stock al insertar en
-     * movimiento_inventario (RNF-07 / SCE2.14). No ejecuta UPDATE duplicado.
-     */
   
-    public boolean actualizarStock(int idProducto, int cantidad) {
-        return true;
-    }
 
     /**
      * Reporte 3 (RF-06): Productos con stock igual o inferior al mínimo.

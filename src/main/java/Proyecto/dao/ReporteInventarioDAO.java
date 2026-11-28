@@ -13,10 +13,10 @@ public class ReporteInventarioDAO {
 
     public Map<String, Double> obtenerParametrosReposicion() {
         Map<String, Double> params = new HashMap<>();
-        params.put("TIEMPO_REPOSICION_DIAS", 10.0);
-        params.put("STOCK_SEGURIDAD_DIAS", 3.0);
+        params.put("TIEMPO_REPOSICION_L", 10.0);
+        params.put("STOCK_SEGURIDAD_S", 3.0);
 
-        String sql = "SELECT clave, valor FROM parametro WHERE clave IN ('TIEMPO_REPOSICION_DIAS', 'STOCK_SEGURIDAD_DIAS')";
+        String sql = "SELECT clave, valor FROM parametro WHERE clave IN ('TIEMPO_REPOSICION_L', 'STOCK_SEGURIDAD_S')";
         try (Connection conn = conexionBD.obtenerConexion();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -48,8 +48,8 @@ public class ReporteInventarioDAO {
     // RF-12: Reposición sugerida SM = ceil((U28 / 28) * (L + S))
     public List<Map<String, Object>> obtenerReposicionSugerida() {
         Map<String, Double> params = obtenerParametrosReposicion();
-        double l = params.get("TIEMPO_REPOSICION_DIAS");
-        double s = params.get("STOCK_SEGURIDAD_DIAS");
+        double l = params.get("TIEMPO_REPOSICION_L");
+        double s = params.get("STOCK_SEGURIDAD_S");
 
         String sql = "WITH ventas_28d AS (" +
                 "  SELECT m.id_producto, SUM(m.cantidad) AS unidades_28d " +

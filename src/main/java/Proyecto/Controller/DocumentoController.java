@@ -6,6 +6,7 @@ import Proyecto.dao.CarritoDAO;
 import Proyecto.dao.ItemCarritoDAO;
 import Proyecto.Model.Carrito;
 import Proyecto.Model.ItemCarrito;
+import Proyecto.dao.ProcedimientosDAO;
 import java.util.List;
 import java.util.Map;
 
@@ -15,7 +16,7 @@ public class DocumentoController {
     private InventarioDAO inventarioDAO;
     private CarritoDAO carritoDAO;
     private ItemCarritoDAO itemCarritoDAO;
-
+    private ProcedimientosDAO procedimientoDAO;
     public DocumentoController() {
         this.documentoDAO = new DocumentoDAO();
         this.inventarioDAO = new InventarioDAO();
@@ -51,7 +52,7 @@ public class DocumentoController {
                     item.getSubtotal()
                 );
                 // Disminuir stock
-                inventarioDAO.actualizarStock(item.getProducto().getIdProducto(), -item.getCantidad());
+                procedimientoDAO.ajustarInventario(1, idEmpleado, item.getProducto().getIdProducto(), -item.getCantidad(), "Venta de producto");
             }
 
             // Limpiar carrito

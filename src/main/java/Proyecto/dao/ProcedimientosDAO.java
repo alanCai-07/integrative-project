@@ -77,7 +77,7 @@ public class ProcedimientosDAO {
     }
 
     public Map<String, Object> registrarCompra(int idProveedor, int idEmpleado,
-                                               String nroFacturaExt, String productosJson) {
+              String nroFacturaExt, String productosJson) {
         Map<String, Object> resultado = new HashMap<>();
 
         try (Connection conexion = conexionBD.obtenerConexion()) {

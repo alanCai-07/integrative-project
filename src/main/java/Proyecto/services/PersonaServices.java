@@ -70,7 +70,7 @@ public class PersonaServices {
 
     public boolean crearEmpleado(String nombre, String apellido, String email,
             String telefono, String documento,
-            String cargo, String password, double salario) {
+            String cargo, String password) {
         if (nombre == null || nombre.trim().isEmpty()
                 || apellido == null || apellido.trim().isEmpty()
                 || email == null || !email.contains("@")
@@ -98,7 +98,7 @@ public class PersonaServices {
 
     public boolean actualizarEmpleado(int idPersona, String nombre, String apellido,
             String telefono, String cargo,
-            double salario, boolean activo) {
+            boolean activo) {
         int idCargo = resolverIdCargo(cargo);
         if (idCargo == -1) {
             System.out.println("Error: cargo no reconocido: " + cargo);

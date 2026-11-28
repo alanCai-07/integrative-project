@@ -46,8 +46,8 @@ public class InventarioServices {
             System.out.println("Error: Producto no encontrado");
             return false;
         }
-        int cambioStock = tipo.equalsIgnoreCase("Entrada") ? cantidad : -cantidad;
-        return actualizarStock(idProducto, cambioStock);
+        
+        return true;
     }
 
     public Map<String, Object> ajustarInventario(int idTipoDoc, int idEmpleado,
@@ -135,20 +135,6 @@ public class InventarioServices {
         return inventarioDAO.obtenerStockActual(idProducto);
     }
 
-    public boolean actualizarStock(int idProducto, int cantidad) {
-        if (productoDAO.obtenerProductoporId(idProducto) == null) {
-            System.out.println("Error: Producto no encontrado");
-            return false;
-        }
-        if (cantidad < 0) {
-            int stockActual = obtenerStock(idProducto);
-            if (stockActual + cantidad < 0) {
-                System.out.println("Error: Stock insuficiente. Disponible: " + stockActual);
-                return false;
-            }
-        }
-        return inventarioDAO.actualizarStock(idProducto, cantidad);
-    }
 
     public boolean validarStockSuficiente(int idProducto, int cantidadRequerida) {
         return obtenerStock(idProducto) >= cantidadRequerida;

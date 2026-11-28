@@ -39,20 +39,6 @@ public class InventarioController {
         return inventarioDAO.obtenerStockActual(idProducto);
     }
 
-    // Actualizar stock del producto
-    public boolean actualizarStock(int idProducto, int cantidad) {
-        // Validar que no quede stock negativo en caso de disminución
-        if (cantidad < 0) {
-            int stockActual = inventarioDAO.obtenerStockActual(idProducto);
-            if (stockActual + cantidad < 0) {
-                System.out.println("Stock insuficiente. Disponible: " + stockActual);
-                return false;
-            }
-        }
-
-        return inventarioDAO.actualizarStock(idProducto, cantidad);
-    }
-
     // Obtener productos con stock bajo
     public List<Map<String, Object>> obtenerProductosConStockBajo() {
         return inventarioDAO.obtenerProductosConStockBajo();

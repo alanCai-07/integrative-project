@@ -24,7 +24,6 @@ public class GestionEmpleadosView {
     private TextField txtEmail;
     private TextField txtTelefono;
     private TextField txtDocumento;
-    private TextField txtSalario;
     private ComboBox<String> cbCargo;
     private PasswordField txtContrasena;
 
@@ -78,7 +77,7 @@ public class GestionEmpleadosView {
         txtEmail = campo("correo@techzone.co");
         txtTelefono = campo("Ej: 3001234567");
         txtDocumento = campo("Cedula / DNI");
-        txtSalario = campo("Salario mensual (sin puntos)");
+    
 
         txtContrasena = new PasswordField();
         txtContrasena.setPromptText(datosActuales == null
@@ -98,7 +97,6 @@ public class GestionEmpleadosView {
                 { "Telefono", txtTelefono },
                 { "Documento *", txtDocumento },
                 { "Cargo *", cbCargo },
-                { "Salario", txtSalario },
                 { "Contrasena", txtContrasena },
         };
 
@@ -117,7 +115,6 @@ public class GestionEmpleadosView {
             String cargo = safe(datosActuales, 4);
             if (cbCargo.getItems().contains(cargo))
                 cbCargo.getSelectionModel().select(cargo);
-            txtSalario.setText(safe(datosActuales, 6));
         }
 
         lblMensaje = new Label("");
@@ -175,16 +172,6 @@ public class GestionEmpleadosView {
         try {
             if (datosActuales == null) {
                 // CREAR nuevo empleado
-                double salario = 0;
-                if (!txtSalario.getText().trim().isEmpty()) {
-                    try {
-                        salario = Double.parseDouble(txtSalario.getText().trim());
-                    } catch (NumberFormatException ex) {
-                        error("El salario debe ser un numero valido.", txtSalario);
-                        return;
-                    }
-                }
-
                 boolean ok = personaServices.crearEmpleado(
                         txtNombres.getText().trim(),
                         txtApellidos.getText().trim(),
@@ -192,8 +179,8 @@ public class GestionEmpleadosView {
                         txtTelefono.getText().trim(),
                         txtDocumento.getText().trim(),
                         cbCargo.getValue(),
-                        txtContrasena.getText(),
-                        salario);
+                        txtContrasena.getText())
+                        ;
 
                 if (ok) {
                     if (onGuardado != null)
@@ -207,15 +194,6 @@ public class GestionEmpleadosView {
             } else {
                 // ACTUALIZAR empleado existente
                 int idPersona = Integer.parseInt(safe(datosActuales, 0));
-                double salario = 0;
-                if (!txtSalario.getText().trim().isEmpty()) {
-                    try {
-                        salario = Double.parseDouble(txtSalario.getText().trim());
-                    } catch (NumberFormatException ex) {
-                        error("El salario debe ser un numero valido.", txtSalario);
-                        return;
-                    }
-                }
 
                 boolean ok = personaServices.actualizarEmpleado(
                         idPersona,
@@ -223,7 +201,6 @@ public class GestionEmpleadosView {
                         txtApellidos.getText().trim(),
                         txtTelefono.getText().trim(),
                         cbCargo.getValue(),
-                        salario,
                         true);
 
                 if (ok) {
