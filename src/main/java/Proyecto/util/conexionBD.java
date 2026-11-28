@@ -61,7 +61,7 @@ public final class conexionBD {
         config.setPassword(obtenerPropiedadRequerida("db.contrasena", "db.password", "db.pass"));
         config.setMaximumPoolSize(Integer.parseInt(obtenerPropiedad("db.conexiones_max", "10")));
         config.setMinimumIdle(Integer.parseInt(obtenerPropiedad("db.conexiones_min", "1")));
-        config.setConnectionTimeout(Long.parseLong(obtenerPropiedad("db.timeout_conexion", "30")) * 1000L);
+        config.setConnectionTimeout(Long.parseLong(obtenerPropiedad("db.timeout_conexion", "10")) * 1000L);
         config.setValidationTimeout(5000);
         config.setPoolName("TechZone-Neon");
         config.setConnectionInitSql("SET search_path TO " + obtenerEsquema().toLowerCase() + ", public");
@@ -87,7 +87,7 @@ public final class conexionBD {
         String nombre = obtenerPropiedadRequerida("db.nombre", "db.name");
         String esquema = obtenerPropiedad("db.schema", "public");
         boolean ssl = Boolean.parseBoolean(obtenerPropiedad("db.ssl", "true"));
-        String timeout = obtenerPropiedad("db.timeout_conexion", "30");
+        String timeout = obtenerPropiedad("db.timeout_conexion", "10");
 
         return String.format(
                 "jdbc:postgresql://%s:%s/%s?sslmode=%s&currentSchema=%s&connectTimeout=%s",

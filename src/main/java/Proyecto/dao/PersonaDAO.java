@@ -62,7 +62,7 @@ public class PersonaDAO {
                 "JOIN cargo c ON e.id_cargo = c.id_cargo " +
                 "WHERE LOWER(p.email) = LOWER(?) AND p.tipo = 'EMPLEADO' AND p.activo = TRUE";
 
-        try (Connection conn = conexionBD.obtenerConexion();
+        try (Connection conn = obtenerConexionAutenticacion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email.trim());
             try (ResultSet rs = ps.executeQuery()) {
@@ -74,7 +74,7 @@ public class PersonaDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al obtener empleado por email: " + e.getMessage());
+            throw new IllegalStateException("No se pudieron consultar las credenciales del empleado.", e);
         }
         return null;
     }
@@ -87,7 +87,7 @@ public class PersonaDAO {
                 "WHERE LOWER(p.email) = LOWER(?) AND p.tipo = 'CLIENTE' " +
                 "  AND p.activo = TRUE AND c.contrasena_hash IS NOT NULL";
 
-        try (Connection conn = conexionBD.obtenerConexion();
+        try (Connection conn = obtenerConexionAutenticacion();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email.trim());
             try (ResultSet rs = ps.executeQuery()) {
@@ -98,9 +98,18 @@ public class PersonaDAO {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error al autenticar cliente: " + e.getMessage());
+            throw new IllegalStateException("No se pudieron consultar las credenciales del cliente.", e);
         }
         return null;
+    }
+
+    private Connection obtenerConexionAutenticacion() {
+        Connection conexion = conexionBD.obtenerConexion();
+        if (conexion == null) {
+            throw new IllegalStateException(
+                    "No se pudo conectar con la base de datos. Verifica config.properties y la conexión a internet.");
+        }
+        return conexion;
     }
 
     public Cliente obtenerClientePorEmail(String email) {

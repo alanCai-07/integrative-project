@@ -180,11 +180,11 @@ public class LoginView extends Application {
                         txtPassword.requestFocus();
                     }
                 });
-            } catch (Throwable error) {
+            } catch (Exception error) {
                 Throwable causa = (error.getCause() != null) ? error.getCause() : error;
                 String detalle = (causa.getMessage() != null && !causa.getMessage().isBlank())
                         ? causa.getMessage()
-                        : "No se pudo conectar con la base de datos.";
+                        : "No se pudo consultar la base de datos. Verifica config.properties y la conexión a internet.";
                 Platform.runLater(() -> {
                     btnLogin.setDisable(false);
                     btnLogin.setText("INGRESAR");

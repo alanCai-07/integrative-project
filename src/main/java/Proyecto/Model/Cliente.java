@@ -38,9 +38,9 @@ public class Cliente extends Persona {
     public String getPasswordHash() { return passwordHash; }
 
     public void setPasswordHash(String passwordHash) {
-        if (passwordHash == null || passwordHash.trim().isEmpty())
+        if (passwordHash != null && passwordHash.trim().isEmpty())
             throw new IllegalArgumentException("La contraseña no puede estar vacía");
-        this.passwordHash = passwordHash.trim();
+        this.passwordHash = passwordHash == null ? null : passwordHash.trim();
     }
 
     public LocalDateTime getFechaRegistro() { return fechaRegistro; }
