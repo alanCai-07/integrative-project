@@ -58,7 +58,6 @@ public class DocumentoServices {
 
         Map<String, Object> res = procedimientosDAO.registrarVenta(
                 idCliente, idEmpleado, 1, json.toString());
-
         int idDocumento = ((Number) res.getOrDefault("idDocumento", -1)).intValue();
         if (idDocumento != -1) {
             itemCarritoDAO.limpiarCarrito(idCliente);
@@ -170,11 +169,11 @@ public class DocumentoServices {
         return sb.toString();
     }
 
-    public String generarFactura(int idDocumento) {
+    public String generarComprobanteInterno(int idDocumento) {
         Map<String, Object> doc = obtenerDocumento(idDocumento);
         if (doc == null) return "Documento no encontrado";
         StringBuilder sb = new StringBuilder();
-        sb.append("FACTURA\n=======\n\nNumero: ").append(doc.get("idDocumento"))
+        sb.append("COMPROBANTE INTERNO DE VENTA\n====================\n\nNumero: ").append(doc.get("idDocumento"))
           .append("\nFecha:  ").append(doc.get("fecha")).append("\n\n");
         for (Map<String, Object> d : obtenerDetallesDocumento(idDocumento)) {
             sb.append("  Cantidad: ").append(d.get("cantidad"))

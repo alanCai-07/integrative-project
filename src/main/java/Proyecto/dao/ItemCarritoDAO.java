@@ -62,7 +62,8 @@ public class ItemCarritoDAO {
                 + "JOIN carrito ca ON ic.id_carrito = ca.id_carrito "
                 + "JOIN producto p ON ic.id_producto = p.id_producto "
                 + "WHERE ca.id_cliente = ? "
-                + "ORDER BY ic.id_item";
+                + "AND ca.estado = 'ABIERTO' "  
+                + "ORDER BY ic.id_item";            
 
         List<ItemCarrito> items = new ArrayList<>();
 
@@ -115,7 +116,7 @@ public class ItemCarritoDAO {
 
     public boolean limpiarCarrito(int idCliente) {
         String sql = "DELETE FROM item_carrito "
-                + "WHERE id_carrito IN (SELECT id_carrito FROM carrito WHERE id_cliente = ?)";
+                + "WHERE id_carrito IN (SELECT id_carrito FROM carrito WHERE id_cliente = ? AND estado = 'ABIERTO')";
 
         try (Connection conexion = conexionBD.obtenerConexion();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {

@@ -268,7 +268,6 @@ public class AdminDashboardView {
                 columnaStr("Apellidos",2),
                 columnaStr("Email",    3),
                 columnaStr("Cargo",    4),
-                columnaStr("Salario",  6),
                 columnaStr("Estado",   5));
 
         TextField txtBuscar   = campo("Buscar empleado...");
@@ -327,7 +326,7 @@ public class AdminDashboardView {
                     try {
                         boolean ok = personaServices.actualizarEmpleado(
                                 Integer.parseInt(sel[0]), sel[1], sel[2],
-                                sel.length > 7 ? sel[7] : "", sel[4], 0, false);
+                                sel.length > 7 ? sel[7] : "", sel[4], false);
                         if (ok) cargarEmpleados(dataEmps);
                         else    error("No se pudo desactivar el empleado.");
                     } catch (Exception ex) { error("Error: " + ex.getMessage()); }
@@ -342,7 +341,7 @@ public class AdminDashboardView {
     private void cargarEmpleados(ObservableList<String[]> data) {
         data.clear();
         String sql = "SELECT p.id_persona, p.nombres, p.apellidos, p.email, " +
-                "c.nombre AS cargo, p.activo, p.telefono, e.salario " +
+                "c.nombre AS cargo, p.activo, p.telefono" +
                 "FROM persona p " +
                 "JOIN empleado e ON p.id_persona = e.id_persona " +
                 "JOIN cargo    c ON e.id_cargo   = c.id_cargo " +
@@ -358,7 +357,6 @@ public class AdminDashboardView {
                         rs.getString("email"),
                         rs.getString("cargo"),
                         rs.getBoolean("activo") ? "Activo" : "Inactivo",
-                        String.format("$%,.0f", rs.getDouble("salario")),
                         rs.getString("telefono") != null ? rs.getString("telefono") : ""
                 });
             }
